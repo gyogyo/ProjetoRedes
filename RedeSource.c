@@ -21,7 +21,7 @@ typedef struct {
 } connection_list;
 
 connection_list ContactList;
-char thisUsername[64];
+char* thisUsername;
 char quit;
 
 void sendMessage(char* address, char* message);
@@ -101,8 +101,12 @@ void* messengerThread(void){
 	int messagetype;
 	int* groupmessage;
 	while(!quit){
-		if(activeContact != NULL) printf("Conversando com %s:\n",activeContact->username);
-
+		if(activeContact != NULL){
+			printf("\nConversando com %s:\n",activeContact->username);
+		}		
+		else{
+			printf("\nNao ha contatos adicionados\nAdicione um contato utilizando \\a\n");
+		}
 		scanf("%956s",buffer);
 		messagetype = parseMessage(buffer);
 	
@@ -376,12 +380,13 @@ int parseMessage(char* message){
 void loadContacts(void){
 	FILE* LoadFile = fopen("ContactList.txt","r");
 	char buffer[512];
-	if(LoadFile != NULL){
+	if(LoadFile != NULL&&ftell(LoadFile)){
 		while(fscanf(LoadFile,"%s\n",buffer)){
 			addAddress(buffer);
 		}
 		fclose(LoadFile);
 	}
+	if(!ftell(LoadFile)) fclose(LoadFile);
 }
 
 void logMsg(char* Content){
@@ -392,24 +397,22 @@ void logMsg(char* Content){
 }
 
 void init(void){
+	thisUsername = (char*) malloc (64*sizeof(char));
 	printf("\nBem vindo ao messenger!\nPor favor digite seu nome de usuario:\n");
-	scanf("%255s",thisUsername);
+	__fpurge(stdin);
+	fgets(thisUsername,63,stdin);
 	quit = 0;
-
-	ContactList.first = malloc(sizeof(connection));
-	strcpy(ContactList.first->address,"localhost");
-	strcpy(ContactList.first->username,thisUsername);
-	ContactList.first->next = NULL;
-
-
-	loadContacts();
+	//ContactList.first = malloc(sizeof(connection));
+	//strcpy(ContactList.first->address,"localhost");
+	//strcpy(ContactList.first->username,thisUsername);
+	ContactList.first = NULL;
 }
+
 
 void end(void){
 	saveContacts();
 	logMsg("End Of Execution");
 }
-
 void main(void){
 
 	pthread_t ReceiverThread;
@@ -422,6 +425,8 @@ void main(void){
 		exit(0);
 	}
 
+	loadContacts();
+
 	if (pthread_create(&MessengerThread,0,(void*) messengerThread,(void*) 0) != 0) { 
 		printf("Error creating multithread.\n");
 		exit(0);
@@ -430,6 +435,5 @@ void main(void){
 	while(!quit){}
 
 	end();
-
 }
 
