@@ -107,7 +107,7 @@ void* messengerThread(void){
 			printf("Conversando com %s:\nMensagem ou Comando: ",activeContact->username);
 		}		
 		else{
-			printf("Nao ha contatos adicionados\nAdicione um contato utilizando \\a\nComando: ");
+			printf("Nao ha contatos adicionados\nAdicione um contato utilizando :a\nComando: ");
 		}
 		//printf("here0");
 		//fflush(stdin);
@@ -130,7 +130,7 @@ void* messengerThread(void){
 			}
 			else{
 				printf("\33[H\33[2J");
-				printf("Nao ha Contatos!\n");
+				printf("Nao ha contatos adicionados ou o contato especificado nao existe!\n");
 				sleep(1);
 			}
 			break;
@@ -156,7 +156,7 @@ void* messengerThread(void){
 			if(activeContact != NULL) sendMessage(activeContact->address,buffer);
 			else{
 				printf("\33[H\33[2J");
-				printf("Nao ha Contatos!\n");
+				printf("Nao ha contatos adicionados!\n");
 				sleep(1);
 			}
 			break;
@@ -176,11 +176,11 @@ void* messengerThread(void){
 			break;*/
 
 			case 1: //"Hlp":
-			printf("Comandos do messenger:\n\\help (\\h) - Exibe esta mensagem de ajuda\n\\fresh (\\f) - Atualiza a conversa atual\n\\add <address> (\\a) - Adiciona um contato pelo seu endereco IP\n\\remove <username> (\\r) - Remove um contato adicionado\n\\quit (\\q) - Sai do messenger\n\\tab <username> (\\t) - Itera pelos contatos salvos, username for vazio, itera ao proximo\n\\group @<username1> @<username2> ... <mensagem>  (\\g) - Mensagem em grupo para as pessoas da lista\n");
+			printf("Comandos do messenger:\n:help (:h) - Exibe esta mensagem de ajuda\n:fresh (:f) - Atualiza a conversa atual\n:add <address> (:a) - Adiciona um contato pelo seu endereco IP\n:remove <username> (:r) - Remove um contato adicionado\n:quit (:q) - Sai do messenger\n:tab <username> (:t) - Itera pelos contatos salvos, username for vazio, itera ao proximo\n:group @<username1> @<username2> ... <mensagem>  (:g) - Mensagem em grupo para as pessoas da lista\n");
 			break;
 
 			default:
-			printf("Comando nao identificado. Digite \\help para informacoes\n");
+			printf("Comando nao identificado. Digite :help para informacoes\n");
 
 		}
 		//printf("nmb %d ", messagetype); sleep(2);
@@ -228,7 +228,7 @@ void sendMessage(char* address, char* message){
 void addAddress(char* address){
 	//printf("here");
 	char addMessage[1024];
-	strcpy(addMessage,"\\a ");
+	strcpy(addMessage,":a ");
 	strcat(addMessage,thisUsername);
 	//printf("addMessage %s!", addMessage);
 	sendMessage(address,addMessage);
@@ -252,30 +252,32 @@ void addContact(char* address, char* username){
 
 }
 
-void removeContact(char* username){
+void removeContact(char* address){
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
 	if(iterator == NULL) return;
-	else if(!strcmp(iterator->username,username)) {
+	else if(!strcmp(iterator->address,address)) {
 		ContactList.first = iterator->next;
-		sendMessage(iterator->address,"\\r");
+		sendMessage(iterator->address,":r");
 		free(iterator);
 		ContactList.size = ContactList.size - 1;
 		return;
 	}
 	else {
 		//printf("jere");
-		while((iterator->next != NULL) && (strcmp(iterator->next->username,username) == 0)) {
+		while((iterator->next != NULL)) {
 			iterator2 = iterator->next; //printf("her");
 			iterator->next = iterator2->next;
-			sendMessage(iterator2->address,"\\r");
+			if((strcmp(iterator->next->address,address) == 0)) return;
+		}
+		if((iterator->next != NULL)){
+			sendMessage(iterator2->address,":r");
 			free(iterator2);
 			ContactList.size = ContactList.size - 1;
 			return;
 		}
 	}
-
 }
 
 void removeContactRemote(char* address){
@@ -290,9 +292,12 @@ void removeContactRemote(char* address){
 	}
 
 	else {
-		while((iterator->next != NULL) && (strcmp(iterator->next->address,address) == 0)) {
-			iterator2 = iterator->next;
+		while((iterator->next != NULL)) {
+			iterator2 = iterator->next; //printf("her");
 			iterator->next = iterator2->next;
+			if((strcmp(iterator->next->address,address) == 0)) return;
+		}
+		if((iterator->next != NULL)){
 			free(iterator2);
 			ContactList.size = ContactList.size - 1;
 			return;
@@ -303,14 +308,14 @@ void removeContactRemote(char* address){
 
 void parseReceived(char* address, char* message){
 
-	if(message[0] == '\\'){
+	if(message[0] == ':'){
 		char* Sep = strchr(message,' ');
 		if(Sep == NULL) Sep = strrchr(message,'\0');
 		char ParseCode[1024];
 		strncpy(ParseCode,message,(Sep - message + 1));
 		ParseCode[(Sep - message + 1)] = '\0';
 		//printf("a mensagem recebida foi parseada ParseCOde %s Message %s\n\n", ParseCode, message);
-		if(strstr(ParseCode,"\\a")){
+		if(strstr(ParseCode,":a")){
 			//printf(" adicionando alguma coisa ");
 			char* Separator = strchr(message,' ');
 			logMsg("Added contact ");
@@ -319,10 +324,10 @@ void parseReceived(char* address, char* message){
 			//printf("tentou adicionar %s %s", address, Separator+1);
 		}
 
-		else if(strstr(ParseCode,"\\r")){
+		else if(strstr(ParseCode,":r")){
 			logMsg("Removed contact ");
 			logMsg(address);
-			removeContact(address);
+			removeContactRemote(address);
 		}
 	}
 
@@ -338,7 +343,7 @@ int parseMessage(char* message){
 	//char ParseMessage[1024] = strncpy (*message,ParseMessage,sizeof(*message));
 	int returnvalue;
 
-	if(message[0] == '\\'){
+	if(message[0] == ':'){
 		//printf("\nImprimindo message %s\n", message); sleep(3);
 		char* Separator = strchr(message,' ');
 		if(Separator == NULL) Separator = strrchr(message,'\0');
@@ -347,7 +352,7 @@ int parseMessage(char* message){
 		ParseCode[(Separator - message + 1)] = '\0';
 		//printf("\nImprimindo message %s\n", message);
 
-		if(strstr(ParseCode,"\\a")){
+		if(strstr(ParseCode,":a")){
 			returnvalue = 0;
 			//Código para copiar do separador ao final da string no buffer original para uso no messengerthread
 			char* Separator2 = strrchr(message,'\0');
@@ -362,9 +367,9 @@ int parseMessage(char* message){
 			}
 		}
 
-		else if(strstr(ParseCode,"\\h")) returnvalue = 1;
+		else if(strstr(ParseCode,":h")) returnvalue = 1;
 
-		else if(strstr(ParseCode,"\\r")){
+		else if(strstr(ParseCode,":r")){
 			returnvalue = 2;
 			//printf("here1"); sleep(1);
 			//__fpurge(stdout);
@@ -378,9 +383,9 @@ int parseMessage(char* message){
 			}
 		}
 
-		else if(strstr(ParseCode,"\\q")) returnvalue = 3;
+		else if(strstr(ParseCode,":q")) returnvalue = 3;
 
-		else if(strstr(ParseCode,"\\t")){
+		else if(strstr(ParseCode,":t")){
 			returnvalue = 4;
 			//printf("here");	
 			//__fpurge(stdout);
@@ -399,7 +404,7 @@ int parseMessage(char* message){
 			}
 		}
 
-		else if(strstr(ParseCode,"\\g")) {
+		else if(strstr(ParseCode,":g")) {
 			returnvalue = 6;
 			char* Separator2 = strrchr(message,'\0');
 			if(Separator != Separator2) {
@@ -410,7 +415,7 @@ int parseMessage(char* message){
 			}
 		}
 
-		else if(strstr(ParseCode,"\\f")) returnvalue = 7;
+		else if(strstr(ParseCode,":f")) returnvalue = 7;
 
 		//char ReturnMessage[1024] = strncpy((Separator+1),ReturnMessage,sizeof(*message) - (Separator - *message + 1));
 		//strcpy(message,strchr(message,' '));
