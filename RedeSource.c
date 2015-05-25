@@ -381,7 +381,7 @@ void loadContacts(void){
 	FILE* LoadFile = fopen("ContactList.txt","r");
 	char buffer[512];
 	if(LoadFile != NULL&&ftell(LoadFile)){
-		while(fscanf(LoadFile,"%s\n",buffer)){
+		while(fgets(buffer,16,LoadFile)){
 			addAddress(buffer);
 		}
 		fclose(LoadFile);
