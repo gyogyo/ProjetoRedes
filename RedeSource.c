@@ -305,7 +305,7 @@ int parseMessage(char* message){
 			//Código para copiar do separador ao final da string no buffer original para uso no messengerthread
 			char* Separator2 = strrchr(message,'\0');
 			if(Separator != Separator2) {
-				strncpy((Separator+1),message,(Separator - Separator2 + 1));
+				strncpy(message,(Separator+1),(Separator2 - Separator + 1));
 				returnvalue = 5;
 			}
 		}
@@ -316,7 +316,7 @@ int parseMessage(char* message){
 			returnvalue = 2;
 			char* Separator2 = strrchr(message,'\0');
 			if(Separator != Separator2) {
-				strncpy((Separator+1),message,(Separator - Separator2 + 1));
+				strncpy(message,(Separator+1),(Separator2 - Separator + 1));
 				returnvalue = 2;
 			}
 		}
@@ -327,8 +327,8 @@ int parseMessage(char* message){
 			returnvalue = 4;
 			char* Separator2 = strrchr(message,' ');
 			if(Separator != Separator2) {
-				strncpy((Separator+1),message,(Separator - Separator2 + 1));
-				message[(Separator - Separator2 + 1)] = '\0';
+				strncpy(message,(Separator+1),(Separator2 - Separator + 1));
+				message[(Separator2 - Separator + 1)] = '\0';
 				returnvalue = 5;
 			}
 		}
@@ -337,7 +337,7 @@ int parseMessage(char* message){
 			returnvalue = 6;
 			char* Separator2 = strrchr(message,'\0');
 			if(Separator != Separator2) {
-				strncpy((Separator+1),message,(Separator - Separator2 + 1));
+				strncpy(message,(Separator+1),(Separator2 - Separator + 1));
 				returnvalue = 6;
 			}
 		}
@@ -347,12 +347,12 @@ int parseMessage(char* message){
 	}
 
 	else {
-	char dataMessage[1024];
-	strcpy(dataMessage,thisUsername);
-	strcat(dataMessage," - ");
-	strcat(dataMessage,message);
-	strcpy(message,dataMessage);
-	returnvalue = -1;
+		char dataMessage[1024];
+		strcpy(dataMessage,thisUsername);
+		strcat(dataMessage," - ");
+		strcat(dataMessage,message);
+		strcpy(message,dataMessage);
+		returnvalue = -1;
 	}
 
 	return returnvalue;
@@ -425,7 +425,7 @@ void main(void){
 		exit(0);
 	}
 
-	loadContacts();
+	//loadContacts();
 
 	if (pthread_create(&MessengerThread,0,(void*) messengerThread,(void*) 0) != 0) { 
 		printf("Error creating multithread.\n");
