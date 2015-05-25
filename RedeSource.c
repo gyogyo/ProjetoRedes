@@ -82,7 +82,7 @@ void* receiverThread(void){
 			logMsg("Erro no id de recebimento");
 			exit(0);
 		}
-		printf("\nMensagem Recebida");
+		//printf("\nMensagem Recebida");
 		bytes_received=recv(connection_id,message,1024,0);
       		message[bytes_received] = '\0';
 
@@ -285,11 +285,14 @@ void parseReceived(char* address, char* message){
 		char ParseCode[1024];
 		strncpy(ParseCode,message,(Sep - message + 1));
 		ParseCode[(Sep - message + 1)] = '\0';
+		printf("a mensagem recebida foi parseada ParseCOde %s Message %s\n\n", ParseCode, message);
 		if(strstr(ParseCode,"\\a")){
+			printf(" adicionando alguma coisa ");
 			char* Separator = strchr(message,' ');
 			logMsg("Added contact ");
 			logMsg(address);
-			addContact(address,Separator+1);
+			addContact(address,Separator+1);			
+			printf("tentou adicionar %s %s", address, Separator+1);
 		}
 
 		else if(strstr(ParseCode,"\\r")){
@@ -300,6 +303,7 @@ void parseReceived(char* address, char* message){
 	}
 
 	else {
+		printf("th dude");
 		logMsg(message);
 		//printf("%s",message);
 	}
