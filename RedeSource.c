@@ -305,7 +305,7 @@ void parseReceived(char* address, char* message){
 	else {
 		printf("th dude");
 		logMsg(message);
-		//printf("%s",message);
+		printf("address %s message %s", address,message);
 	}
 
 }
