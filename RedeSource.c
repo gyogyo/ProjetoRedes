@@ -425,7 +425,7 @@ void main(void){
 		exit(0);
 	}
 
-	loadContacts();
+	//loadContacts();
 
 	if (pthread_create(&MessengerThread,0,(void*) messengerThread,(void*) 0) != 0) { 
 		printf("Error creating multithread.\n");
