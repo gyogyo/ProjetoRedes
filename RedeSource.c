@@ -107,9 +107,14 @@ void* messengerThread(void){
 		else{
 			printf("\nNao ha contatos adicionados\nAdicione um contato utilizando \\a\n");
 		}
-		scanf("%956s",buffer);
+		//printf("here0");
+		fflush(stdin);
+		__fpurge(stdin);
+		fgets(buffer,956,stdin);
+		//printf("here1");	
+		//sleep(10);
 		messagetype = parseMessage(buffer);
-	
+		//printf("here2");
 		switch(messagetype){
 
 			case 4: //"Tab":
@@ -131,6 +136,7 @@ void* messengerThread(void){
 			break;
 
 			case 0: //"Add":
+			//printf("\nImprimindo buffer %s\n", buffer);
 			addAddress(buffer);
 			break;
 
@@ -146,7 +152,6 @@ void* messengerThread(void){
 			groupmessage = groupSelect(buffer);
 			if(!groupmessage[0]) printf("Grupo invalido\n");
 			else for(i = 1; i <= groupmessage[0]; i++)
-				sendMessage(buffer,groupmessage[i]);
 			break;*/
 
 			case 1: //"Hlp":
@@ -166,11 +171,15 @@ void sendMessage(char* address, char* message){
 	struct hostent* host;
 	struct sockaddr_in server_address;
 	int connection_id;
-
+	//printf("\nImprimindo address %s e message %s\n", address, message);	
+	//printf("%d", strlen(message));
+	int i;
+	for(i=0;i<10;i++)
+		printf("[%c]", address[i]);
 	int bytes_received;
-
+	//printf("address %s. Number %d. name %s.", address,(int)strlen(address), message);
 	host = gethostbyname(address);
-
+	
 	if ((socket_id = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		logMsg("Erro no Socket");
 		exit(0);
@@ -194,6 +203,7 @@ void sendMessage(char* address, char* message){
 }
 
 void addAddress(char* address){
+	//printf("here");
 	char addMessage[1024] = "\a ";
 	strcat(addMessage,thisUsername);
 	sendMessage(address,addMessage);
@@ -268,15 +278,19 @@ void removeContactRemote(char* address){
 void parseReceived(char* address, char* message){
 
 	if(message[0] == '\\'){
-
-		if(message[1] == 'a'){
+		char* Sep = strchr(message,' ');
+		if(Sep == NULL) Sep = strrchr(message,'\0');
+		char ParseCode[1024];
+		strncpy(ParseCode,message,(Sep - message + 1));
+		ParseCode[(Sep - message + 1)] = '\0';
+		if(strstr(ParseCode,"\\a")){
 			char* Separator = strchr(message,' ');
 			logMsg("Added contact ");
 			logMsg(address);
 			addContact(address,Separator+1);
 		}
 
-		else if(message[1] == 'r'){
+		else if(strstr(ParseCode,"\\r")){
 			logMsg("Removed contact ");
 			logMsg(address);
 			removeContact(address);
@@ -285,7 +299,7 @@ void parseReceived(char* address, char* message){
 
 	else {
 		logMsg(message);
-		printf("%s",message);
+		//printf("%s",message);
 	}
 
 }
@@ -295,18 +309,26 @@ int parseMessage(char* message){
 	int returnvalue;
 
 	if(message[0] == '\\'){
+		//printf("\nImprimindo message %s\n", message);
 		char* Separator = strchr(message,' ');
 		if(Separator == NULL) Separator = strrchr(message,'\0');
 		char ParseCode[1024];
 		strncpy(ParseCode,message,(Separator - message + 1));
 		ParseCode[(Separator - message + 1)] = '\0';
+		//printf("\nImprimindo message %s\n", message);
+
 		if(strstr(ParseCode,"\\a")){
 			returnvalue = 0;
 			//Código para copiar do separador ao final da string no buffer original para uso no messengerthread
 			char* Separator2 = strrchr(message,'\0');
 			if(Separator != Separator2) {
-				strncpy(message,(Separator+1),(Separator2 - Separator + 1));
-				returnvalue = 5;
+				//printf("\nPrintando Separator+1 %s e message %d\n", (Separator+1),(Separator2-Separator-2));
+				char aux[1024];
+				memmove(aux,(Separator+1),(Separator2-Separator-2));
+				memmove(message,aux,1024);
+				//printf("%s", message);
+				returnvalue = 0;
+				//printf("here");
 			}
 		}
 
@@ -316,7 +338,9 @@ int parseMessage(char* message){
 			returnvalue = 2;
 			char* Separator2 = strrchr(message,'\0');
 			if(Separator != Separator2) {
-				strncpy(message,(Separator+1),(Separator2 - Separator + 1));
+				char aux[1024];
+				memmove(aux,(Separator+1),(Separator2-Separator-2));
+				memmove(message,aux,1024);
 				returnvalue = 2;
 			}
 		}
@@ -327,8 +351,10 @@ int parseMessage(char* message){
 			returnvalue = 4;
 			char* Separator2 = strrchr(message,' ');
 			if(Separator != Separator2) {
-				strncpy(message,(Separator+1),(Separator2 - Separator + 1));
-				message[(Separator2 - Separator + 1)] = '\0';
+				char aux[1024];
+				memmove(aux,(Separator+1),(Separator2-Separator-2));
+				memmove(message,aux,1024);
+				message[(Separator2 - Separator - 2)] = '\0';
 				returnvalue = 5;
 			}
 		}
@@ -337,7 +363,9 @@ int parseMessage(char* message){
 			returnvalue = 6;
 			char* Separator2 = strrchr(message,'\0');
 			if(Separator != Separator2) {
-				strncpy(message,(Separator+1),(Separator2 - Separator + 1));
+				char aux[1024];
+				memmove(aux,(Separator+1),(Separator2-Separator-2));
+				memmove(message,aux,1024);
 				returnvalue = 6;
 			}
 		}
@@ -345,8 +373,8 @@ int parseMessage(char* message){
 		//char ReturnMessage[1024] = strncpy((Separator+1),ReturnMessage,sizeof(*message) - (Separator - *message + 1));
 		//strcpy(message,strchr(message,' '));
 	}
-
-	else {
+	else
+	{
 		char dataMessage[1024];
 		strcpy(dataMessage,thisUsername);
 		strcat(dataMessage," - ");
@@ -354,7 +382,7 @@ int parseMessage(char* message){
 		strcpy(message,dataMessage);
 		returnvalue = -1;
 	}
-
+	//printf("retoronou");
 	return returnvalue;
 
 }
