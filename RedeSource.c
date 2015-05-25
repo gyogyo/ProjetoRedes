@@ -20,7 +20,19 @@ typedef struct {
 	connection* first;
 } connection_list;
 
+typedef struct message_list{
+	char incoming;
+	char address[64];
+	char message[1024];
+	struct message_list* next;
+} conversation;
+
+typedef struct {
+	conversation* first;
+} conversation_list;
+
 connection_list ContactList;
+conversation_list MessageList;
 char* thisUsername;
 char quit;
 
@@ -32,6 +44,9 @@ void removeContactRemote(char* address);
 void saveContacts(void);
 void loadContacts(void);
 void logMsg(char* Content);
+void saveListMsg(int incoming, char* address, char* message);
+void printListMsg(char* address);
+void printest(char* address);
 void init(void);
 void end(void);
 void parseReceived(char* address, char* message);
@@ -104,7 +119,10 @@ void* messengerThread(void){
 	while(!quit){
 		printf("\33[H\33[2J");
 		if(activeContact != NULL){
-			printf("Conversando com %s:\nMensagem ou Comando: ",activeContact->username);
+			printf("Conversando com %s:",activeContact->username);
+			printListMsg(activeContact->address);
+			//printest(activeContact->address);
+			printf("\nMensagem ou Comando: ");
 		}		
 		else{
 			printf("Nao ha contatos adicionados\nAdicione um contato utilizando :a\nComando: ");
@@ -159,7 +177,9 @@ void* messengerThread(void){
 			break;
 
 			case -1: //"Msg":
-			if(activeContact != NULL) sendMessage(activeContact->address,buffer);
+			if(activeContact != NULL){
+				sendMessage(activeContact->address,buffer);	
+			}
 			else{
 				printf("\33[H\33[2J");
 				printf("Nao ha contatos adicionados!\n");
@@ -226,7 +246,7 @@ void sendMessage(char* address, char* message){
 	printf("Mandando mensagem para %s\n", address);
 	
 	send(socket_id,message,strlen(message),0);
-
+	saveListMsg(0,"127.0.0.1",message);
 	close(socket_id);
 	sleep(3);
 }
@@ -338,10 +358,9 @@ void parseReceived(char* address, char* message){
 
 	else {
 		//printf("th dude");
-		logMsg(message);
+		saveListMsg(1,address,message);
 		//printf("address %s message %s", address,message);
 	}
-
 }
 
 int parseMessage(char* message){
@@ -434,11 +453,11 @@ int parseMessage(char* message){
 	else
 	{
 		//printf("here");
-		char dataMessage[1024];
-		strcpy(dataMessage,thisUsername);
-		strcat(dataMessage," - ");
-		strcat(dataMessage,message);
-		strcpy(message,dataMessage);
+		//char dataMessage[1024];
+		//strcpy(dataMessage,thisUsername);
+		//strcat(dataMessage," - ");
+		//strcat(dataMessage,message);
+		//strcpy(message,dataMessage);
 		returnvalue = -1;
 	}
 	//printf("retoronou");
@@ -483,6 +502,73 @@ void logMsg(char* Content){
 	fclose(LogFile);
 }
 
+void saveListMsg(int incoming, char* address, char* message){
+	//printf(" salvando ");
+	conversation* iterator = MessageList.first;
+	conversation* newConversation= malloc(sizeof(conversation));
+	newConversation->incoming=incoming;
+	newConversation->next=NULL;
+	strcpy(newConversation->address,address);
+	strcpy(newConversation->message,message);	
+	if(iterator == NULL){
+		//printf(" eranulo ");
+		MessageList.first = newConversation;
+	}
+	else{
+		//printf(" neranulo ");
+		while(iterator->next!=NULL)
+			iterator=iterator->next;
+		iterator->next = newConversation;
+	}
+	//printf(" terminei salvar "); sleep(3);
+}
+
+void printListMsg(char* address){
+	conversation* iterator = MessageList.first;
+	//printf(" tentei printar ");
+	if(iterator == NULL){
+		//printf("nemfoi");
+		return;
+	}
+	else{
+		printf("\n");
+		if(strcmp(iterator->address,address)==0||strcmp(iterator->address,"127.0.0.1")==0)
+		{
+			//printf("1st %d ", iterator->incoming);
+			if(!iterator->incoming) printf("\nlocalhost: %s", iterator->message);
+			else if(iterator->incoming) printf("\n%s: %s", iterator->address, iterator->message);
+		}
+		while(iterator->next!=NULL)
+		{
+			iterator=iterator->next;
+			if(strcmp(iterator->address,address)==0||strcmp(iterator->address,"127.0.0.1")==0)
+			{
+				if(!iterator->incoming) printf("\nlocalhost: %s", iterator->message);
+				else if(iterator->incoming) printf("\n%s: %s", iterator->address, iterator->message);
+			}
+		}
+	}
+	//printf(" terminei printar "); sleep(3);
+}
+
+void printest(char* address){
+	conversation* iterator = MessageList.first;
+	if(iterator == NULL){
+		//printf("nemfoi");
+		return;
+	}
+	else{
+		printf("\n");
+		printf("\n%s: %s", address, iterator->message);
+		while(iterator->next!=NULL)
+		{
+			iterator=iterator->next;
+			printf("\n%s: %s", address, iterator->message);
+		}
+	}
+	//printf(" terminei printar "); sleep(3);
+}
+
 void init(void){
 	thisUsername = (char*) malloc (64*sizeof(char));
 	printf("\33[H\33[2J");
@@ -496,6 +582,7 @@ void init(void){
 	//strcpy(ContactList.first->address,"localhost");
 	//strcpy(ContactList.first->username,thisUsername);
 	ContactList.first = NULL;
+	MessageList.first = NULL;
 }
 
 
