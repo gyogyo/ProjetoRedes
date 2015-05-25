@@ -82,7 +82,7 @@ void* receiverThread(void){
 			logMsg("Erro no id de recebimento");
 			exit(0);
 		}
-
+		printf("\nMensagem Recebida");
 		bytes_received=recv(connection_id,message,1024,0);
       		message[bytes_received] = '\0';
 
@@ -118,17 +118,19 @@ void* messengerThread(void){
 		switch(messagetype){
 
 			case 4: //"Tab":
-			if(activeContact->next != NULL) activeContact = activeContact->next;
+			if(activeContact != NULL && activeContact->next != NULL) activeContact = activeContact->next;
 			else activeContact = ContactList.first;
 			break;
 
 			case 5: //"Ta2":
-			if(activeContact->next != NULL){
+			if(activeContact != NULL && activeContact->next != NULL){
 				connection* Marker = activeContact;
 				do {
 					activeContact = activeContact->next;
 				} while(activeContact->username != buffer && activeContact != Marker);
 			}
+			else
+				printf("\nNao ha Contatos\n");
 			break;
 
 			case 3: //"Exi":
@@ -174,8 +176,8 @@ void sendMessage(char* address, char* message){
 	//printf("\nImprimindo address %s e message %s\n", address, message);	
 	//printf("%d", strlen(message));
 	int i;
-	for(i=0;i<10;i++)
-		printf("[%c]", address[i]);
+	/*for(i=0;i<10;i++)
+		printf("[%c]", address[i]);*/
 	int bytes_received;
 	//printf("address %s. Number %d. name %s.", address,(int)strlen(address), message);
 	host = gethostbyname(address);
@@ -349,13 +351,20 @@ int parseMessage(char* message){
 
 		else if(strstr(ParseCode,"\\t")){
 			returnvalue = 4;
+			//printf("here");	
+			//__fpurge(stdout);
 			char* Separator2 = strrchr(message,' ');
-			if(Separator != Separator2) {
-				char aux[1024];
-				memmove(aux,(Separator+1),(Separator2-Separator-2));
-				memmove(message,aux,1024);
-				message[(Separator2 - Separator - 2)] = '\0';
-				returnvalue = 5;
+			if( Separator2 != NULL) {
+				Separator = strrchr(message,'\0');
+				if (Separator != Separator2)
+				{
+					char aux[1024];
+					memmove(aux,(Separator2+1),(Separator-Separator2-2));
+					memmove(message,aux,1024);
+					//printf("%s", message);
+					message[(Separator - Separator2 - 2)] = '\0';
+					returnvalue = 5;
+				}
 			}
 		}
 
@@ -375,6 +384,7 @@ int parseMessage(char* message){
 	}
 	else
 	{
+		//printf("here");
 		char dataMessage[1024];
 		strcpy(dataMessage,thisUsername);
 		strcat(dataMessage," - ");
