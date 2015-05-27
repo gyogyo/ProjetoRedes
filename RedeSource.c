@@ -149,7 +149,13 @@ void* messengerThread(void){
 			break;
 
 			case 2: //"Rem":
+			//printf("%s",buffer);
+			if(activeContact != NULL && strcmp(activeContact->username,buffer) == 0) {
+				if(activeContact->next != NULL) activeContact = activeContact->next;
+				else activeContact = ContactList.first;
+				}
 			removeContact(buffer);
+			
 			break;
 
 			case -1: //"Msg":
@@ -252,12 +258,13 @@ void addContact(char* address, char* username){
 
 }
 
-void removeContact(char* address){
+void removeContact(char* username){
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
 	if(iterator == NULL) return;
-	else if(!strcmp(iterator->address,address)) {
+	else if(strcmp(iterator->username,username) == 0) {
+		
 		ContactList.first = iterator->next;
 		sendMessage(iterator->address,":r");
 		free(iterator);
@@ -268,14 +275,13 @@ void removeContact(char* address){
 		//printf("jere");
 		while((iterator->next != NULL)) {
 			iterator2 = iterator->next; //printf("her");
-			iterator->next = iterator2->next;
-			if((strcmp(iterator->next->address,address) == 0)) return;
-		}
-		if((iterator->next != NULL)){
-			sendMessage(iterator2->address,":r");
-			free(iterator2);
-			ContactList.size = ContactList.size - 1;
-			return;
+			printf("%s %s",iterator2->username,username);
+			if((strcmp(iterator2->username,username) == 0)){
+				iterator->next = iterator2->next;
+				sendMessage(iterator2->address,":r");
+				free(iterator2);
+				ContactList.size = ContactList.size - 1;
+			}
 		}
 	}
 }
@@ -284,23 +290,22 @@ void removeContactRemote(char* address){
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
-	if(!strcmp(iterator->address,address)) {
+	if(iterator == NULL) return;
+	else if(strcmp(iterator->address,address) == 0) {
+		
 		ContactList.first = iterator->next;
 		free(iterator);
 		ContactList.size = ContactList.size - 1;
 		return;
 	}
-
 	else {
 		while((iterator->next != NULL)) {
-			iterator2 = iterator->next; //printf("her");
-			iterator->next = iterator2->next;
-			if((strcmp(iterator->next->address,address) == 0)) return;
-		}
-		if((iterator->next != NULL)){
-			free(iterator2);
-			ContactList.size = ContactList.size - 1;
-			return;
+			iterator2 = iterator->next;
+			if((strcmp(iterator2->address,address) == 0)){
+				iterator->next = iterator2->next;
+				free(iterator2);
+				ContactList.size = ContactList.size - 1;
+			}
 		}
 	}
 
@@ -346,22 +351,27 @@ int parseMessage(char* message){
 	if(message[0] == ':'){
 		//printf("\nImprimindo message %s\n", message); sleep(3);
 		char* Separator = strchr(message,' ');
-		if(Separator == NULL) Separator = strrchr(message,'\0');
+		if(Separator == NULL) Separator = strrchr(message,'\n');
 		char ParseCode[1024];
 		strncpy(ParseCode,message,(Separator - message + 1));
 		ParseCode[(Separator - message + 1)] = '\0';
+		//printf("|%s|%s|%s|%d|",ParseCode,Separator,Separator+1,strlen(Separator+1));
 		//printf("\nImprimindo message %s\n", message);
 
 		if(strstr(ParseCode,":a")){
 			returnvalue = 0;
 			//Código para copiar do separador ao final da string no buffer original para uso no messengerthread
-			char* Separator2 = strrchr(message,'\0');
+			char* Separator2 = strrchr(message,'\n');
+			*Separator2 = '\0';
 			if(Separator != Separator2) {
 				//printf("\nPrintando Separator+1 %s e message %d\n", (Separator+1),(Separator2-Separator-2));
 				char aux[1024];
-				memmove(aux,(Separator+1),(Separator2-Separator-2));
-				memmove(message,aux,1024);
-				//printf("%s", message);
+				strcpy(aux,Separator+1);
+				strcpy(message,aux);
+				//memmove(aux,(Separator+1),(Separator2-Separator-2));
+				//memmove(message,aux,1024);
+				//printf("|%s|%d|%s|%d", aux,strlen(message),message, strcmp(message,"localhost"));
+				//sleep(20);
 				returnvalue = 0;
 				//printf("here");
 			}
@@ -373,13 +383,14 @@ int parseMessage(char* message){
 			returnvalue = 2;
 			//printf("here1"); sleep(1);
 			//__fpurge(stdout);
-			char* Separator2 = strrchr(message,'\0');
+			char* Separator2 = strrchr(message,'\n');
+			*Separator2 = '\0';
 			if(Separator != Separator2) {
 				char aux[1024];
-				memmove(aux,(Separator+1),(Separator2-Separator-2));
-				memmove(message,aux,1024);
+				strcpy(aux,Separator+1);
+				strcpy(message,aux);
 				returnvalue = 2;
-				//printf("here2"); sleep(2);
+				//printf("%s %d",message,strcmp(message,"username")); sleep(2);
 			}
 		}
 
@@ -478,6 +489,8 @@ void init(void){
 	printf("Bem vindo ao messenger!\nPor favor digite seu nome de usuario:\nUsername: ");
 	__fpurge(stdin);
 	fgets(thisUsername,63,stdin);
+	char* ReturnOfNewlineKiller = strrchr(thisUsername,'\n');
+	*ReturnOfNewlineKiller = '\0';
 	quit = 0;
 	//ContactList.first = malloc(sizeof(connection));
 	//strcpy(ContactList.first->address,"localhost");
