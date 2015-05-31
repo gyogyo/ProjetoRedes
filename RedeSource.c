@@ -144,7 +144,7 @@ void* messengerThread(void){
 				connection* Marker = activeContact;
 				do {
 					activeContact = activeContact->next;
-				} while(activeContact->username != buffer && activeContact != Marker);
+				} while(strcmp(activeContact->username,buffer) != 0 && activeContact != Marker);
 			}
 			else{
 				printf("\33[H\33[2J");
@@ -170,6 +170,7 @@ void* messengerThread(void){
 			//printf("%s",buffer);
 			if(activeContact != NULL && strcmp(activeContact->username,buffer) == 0) {
 				if(activeContact->next != NULL) activeContact = activeContact->next;
+				else if (strcmp(activeContact->address,ContactList.first->address) == 0) activeContact = NULL;
 				else activeContact = ContactList.first;
 				}
 			removeContact(buffer);
@@ -526,7 +527,7 @@ void saveListMsg(int incoming, char* address, char* message){
 void printListMsg(char* address){
 	conversation* iterator = MessageList.first;
 	//printf(" tentei printar ");
-	if(iterator == NULL){
+	if(iterator == NULL || address == NULL){
 		//printf("nemfoi");
 		return;
 	}
