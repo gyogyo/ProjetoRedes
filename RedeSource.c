@@ -42,6 +42,7 @@ void addAddress(char* address);
 void addContact(char* address, char* username);
 void removeContact(char* username);
 void removeContactRemote(char* address);
+void groupMessage(char*);
 void saveContacts(void);
 void loadContacts(void);
 void logMsg(char* Content);
@@ -115,7 +116,7 @@ void* messengerThread(void){
 	connection* activeContact = ContactList.first;
 	char buffer[1024];
 	int messagetype;
-	int* groupmessage;
+	char** groupmessage;
 	sleep(3);
 	while(!quit){
 		printf("\33[H\33[2J");
@@ -196,12 +197,10 @@ void* messengerThread(void){
 			sleep(1);
 			break;
 
-			/*
 			case 6: //"Grp":
-			groupmessage = groupSelect(buffer);
-			if(!groupmessage[0]) printf("Grupo invalido\n");
-			else for(i = 1; i <= groupmessage[0]; i++)
-			break;*/
+			printf("\n%s\n",buffer);
+			groupMessage(buffer);
+			break;
 
 			case 1: //"Hlp":
 			printf("Comandos do messenger:\n:help (:h) - Exibe esta mensagem de ajuda\n:fresh (:f) - Atualiza a conversa atual\n:add <address> (:a) - Adiciona um contato pelo seu endereco IP\n:remove <username> (:r) - Remove um contato adicionado\n:quit (:q) - Sai do messenger\n:tab <username> (:t) - Itera pelos contatos salvos, username for vazio, itera ao proximo\n:group @<username1> @<username2> ... <mensagem>  (:g) - Mensagem em grupo para as pessoas da lista\n");
@@ -248,7 +247,9 @@ void sendMessage(char* address, char* message){
 		close(socket_id);
 		sleep(3);
 	}
-	else{ printf("\33[H\33[2J");
+
+	else{
+	printf("\33[H\33[2J");
 	printf("Mandando mensagem para %s\n", address);
 	
 	send(socket_id,message,strlen(message),0);
@@ -443,11 +444,12 @@ int parseMessage(char* message){
 
 		else if(strstr(ParseCode,":g")) {
 			returnvalue = 6;
-			char* Separator2 = strrchr(message,'\0');
+			char* Separator2 = strrchr(message,'\n');
+			*Separator2 = '\0';
 			if(Separator != Separator2) {
 				char aux[1024];
-				memmove(aux,(Separator+1),(Separator2-Separator-2));
-				memmove(message,aux,1024);
+				strcpy(aux,Separator+1);
+				strcpy(message,aux);
 			}
 		}
 
@@ -470,6 +472,66 @@ int parseMessage(char* message){
 	}
 
 	return returnvalue;
+
+}
+
+void groupMessage(char* buffer){
+	char* identifier = buffer;
+	int counter = 0;
+	int i;
+
+	while(identifier[0]!='\0'){
+		if(identifier[0]==':') counter++;
+		identifier++;
+	}
+
+	char userSelector[64][64];
+
+	if(!counter) return;
+
+	char* identifier2 = buffer;
+	identifier = buffer;
+	i = 0;
+	char setupFlag = 0;
+	while(identifier[0]!='\0'){
+
+		if(identifier[0]==':'){
+			identifier++;
+			identifier2 = identifier;
+			setupFlag = 1;
+		}
+
+		else if(identifier[0]==' ' && setupFlag == 1){
+			identifier[0] = '\0';
+			strcpy(userSelector[i],identifier2);
+			identifier2 = identifier+1;
+			while(identifier2[0]==' ') identifier2++;
+			identifier = identifier2;
+			i++;
+			setupFlag = 0;
+		}
+
+		else identifier++;
+	}
+
+	//if(setupFlag == 1) Não teve mensagem pra enviar, dur.
+	//else identifier2 terá a mensagem para enviar.
+	if(!setupFlag) {
+
+		strcpy(buffer,identifier2);
+		connection* iterator = ContactList.first;
+
+		if(iterator != NULL)
+			for(i = 0; i < counter; i++){
+				while(iterator != NULL && strcmp(iterator->username,userSelector[i])!=0)
+					iterator = iterator->next;
+				if(iterator != NULL) //Encontrou username na lista de contatos
+					sendMessage(iterator->address,buffer);
+			}
+		
+	}
+
+	return;
 
 }
 
