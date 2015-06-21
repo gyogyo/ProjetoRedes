@@ -37,12 +37,16 @@ conversation_list MessageList;
 char* thisUsername;
 char quit;
 
+pthread_mutex_t receivedMutex;
+char receivedInfo[2][1024];
+
 void sendMessage(char* address, char* message);
 void addAddress(char* address);
 void addContact(char* address, char* username);
 void removeContact(char* username);
 void removeContactRemote(char* address);
 void groupMessage(char*);
+void printContactList(void);
 void saveContacts(void);
 void loadContacts(void);
 void logMsg(char* Content);
@@ -54,6 +58,14 @@ void end(void);
 void parseReceived(char* address, char* message);
 int parseMessage(char* message);
 
+
+void* messageReceiverThread(void){	
+	char information[2][1024];
+	strcpy(information[0],receivedInfo[0]);
+	strcpy(information[1],receivedInfo[1]);
+	pthread_mutex_unlock(&receivedMutex);
+	parseReceived(information[0],information[1]);
+}
 
 void* receiverThread(void){
 
@@ -91,6 +103,8 @@ void* receiverThread(void){
 	printf("\33[H\33[2J");
 	printf("Servidor TCP esperando por conexoes na porta 7000\n");
 
+	pthread_t PopupThread; //Popup Thread que o Gyogyo-san queria tanto
+
 	while(!quit){
 
 		connection_id = accept(socket_id, (struct sockaddr *)&incoming_address, &address_size);
@@ -102,8 +116,16 @@ void* receiverThread(void){
 		//printf("\nMensagem Recebida");
 		bytes_received=recv(connection_id,message,1024,0);
       		message[bytes_received] = '\0';
+		
+		pthread_mutex_lock(&receivedMutex);
+		strcpy(receivedInfo[0],inet_ntoa(incoming_address.sin_addr));
+		strcpy(receivedInfo[1],message);
 
-		parseReceived(inet_ntoa(incoming_address.sin_addr),message);
+		if (pthread_create(&PopupThread,0,(void*) messageReceiverThread,(void*) 0) != 0) { 
+			printf("Error creating multithread.\n");
+			exit(0);
+		}
+		
 		
 		close(connection_id);
 
@@ -195,6 +217,19 @@ void* messengerThread(void){
 			printf("\33[H\33[2J");
 			printf("Atualizando!\n");
 			sleep(1);
+			break;
+
+			case 8: //"List":
+
+			if(activeContact != NULL){				
+				printContactList();
+			}
+			else{
+				printf("\33[H\33[2J");
+				printf("Nao ha contatos adicionados!\n");
+				sleep(1);
+			}
+
 			break;
 
 			case 6: //"Grp":
@@ -455,6 +490,8 @@ int parseMessage(char* message){
 
 		else if(strstr(ParseCode,":f")) returnvalue = 7;
 
+		else if(strstr(ParseCode,":l")) returnvalue = 8;
+
 		//char ReturnMessage[1024] = strncpy((Separator+1),ReturnMessage,sizeof(*message) - (Separator - *message + 1));
 		//strcpy(message,strchr(message,' '));
 		
@@ -481,7 +518,7 @@ void groupMessage(char* buffer){
 	int i;
 
 	while(identifier[0]!='\0'){
-		if(identifier[0]==':') counter++;
+		if(identifier[0]=='@') counter++;
 		identifier++;
 	}
 
@@ -495,7 +532,7 @@ void groupMessage(char* buffer){
 	char setupFlag = 0;
 	while(identifier[0]!='\0'){
 
-		if(identifier[0]==':'){
+		if(identifier[0]=='@'){
 			identifier++;
 			identifier2 = identifier;
 			setupFlag = 1;
@@ -535,6 +572,21 @@ void groupMessage(char* buffer){
 
 }
 
+void printContactList(void){
+
+	printf("\33[H\33[2J");
+	printf("\nImprimindo lista de contatos:\n");
+
+	connection* iterator = ContactList.first;
+
+	while(iterator != NULL){
+		printf("\nUsername: %s Address: %s Online: Sim",iterator->username,iterator->address); 
+		iterator = iterator->next;
+	}
+
+	printf("\n\nEntre com qualquer linha para continuar.\n");
+	getc(stdin);
+}
 
 																																																																																																																																																																																																																																																																																																																								void saveContacts(void){
 	FILE* SaveFile = fopen("ContactList.txt","w");
@@ -653,6 +705,10 @@ void init(void){
 	//strcpy(ContactList.first->username,thisUsername);
 	ContactList.first = NULL;
 	MessageList.first = NULL;
+	if(pthread_mutex_init(&receivedMutex,NULL) != 0){
+		printf("Error creating Mutex.\n");
+		exit(0);
+	}
 }
 
 
@@ -660,6 +716,8 @@ void end(void){
 	saveContacts();
 	logMsg("End Of Execution");
 	free(thisUsername);
+	pthread_mutex_destroy(&receivedMutex);
+	exit(0);
 }
 void main(void){
 
