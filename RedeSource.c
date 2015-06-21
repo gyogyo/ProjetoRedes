@@ -4,6 +4,7 @@
 #include <arpa/inet.h>   // Converte enderecos hosts
 #include <netdb.h>
 #include <pthread.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -131,7 +132,7 @@ void* messengerThread(void){
 		//fflush(stdin);
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
-		messagetype = parseMessage(buffer);
+		messagetype = parseMessage(buffer);	
 		switch(messagetype){
 
 			case 4: //"Tab":
@@ -227,6 +228,7 @@ void sendMessage(char* address, char* message){
 		printf("[%c]", address[i]);*/
 	int bytes_received;
 	//printf("address %s. Number %d. name %s.", address,(int)strlen(address), message);
+
 	host = gethostbyname(address);
 	
 	if ((socket_id = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -238,18 +240,22 @@ void sendMessage(char* address, char* message){
 	server_address.sin_port = htons(7000);
 	server_address.sin_addr = *((struct in_addr *)host->h_addr);
 	bzero(&(server_address.sin_zero),8);
-
+	
 	if (connect(socket_id,(struct sockaddr *)&server_address,sizeof(struct sockaddr)) == -1){
 		logMsg("Erro de conexao");
-		exit(0);
+		printf("\33[H\33[2J");
+		printf("Erro: %s\n", strerror(errno));
+		close(socket_id);
+		sleep(3);
 	}
-	printf("\33[H\33[2J");
+	else{ printf("\33[H\33[2J");
 	printf("Mandando mensagem para %s\n", address);
 	
 	send(socket_id,message,strlen(message),0);
 	saveListMsg(0,"127.0.0.1",message);
 	close(socket_id);
 	sleep(3);
+	}
 }
 
 void addAddress(char* address){
@@ -376,13 +382,12 @@ int parseMessage(char* message){
 		strncpy(ParseCode,message,(Separator - message + 1));
 		ParseCode[(Separator - message + 1)] = '\0';
 		//printf("|%s|%s|%s|%d|",ParseCode,Separator,Separator+1,strlen(Separator+1));
-		//printf("\nImprimindo message %s\n", message);
 
 		if(strstr(ParseCode,":a")){
 			returnvalue = 0;
 			//Código para copiar do separador ao final da string no buffer original para uso no messengerthread
 			char* Separator2 = strrchr(message,'\n');
-			*Separator2 = '\0';
+			Separator2[0] = '\0';
 			if(Separator != Separator2) {
 				//printf("\nPrintando Separator+1 %s e message %d\n", (Separator+1),(Separator2-Separator-2));
 				char aux[1024];
@@ -390,12 +395,13 @@ int parseMessage(char* message){
 				strcpy(message,aux);
 				//memmove(aux,(Separator+1),(Separator2-Separator-2));
 				//memmove(message,aux,1024);
-				//printf("|%s|%d|%s|%d", aux,strlen(message),message, strcmp(message,"localhost"));
+				//printf("|%s|%d|%s|%d", aux,strlen(message),message, strcmp(message,"123.123.123.123"));
 				//sleep(20);
-				returnvalue = 0;
-				//printf("here");
+				//printf("\nMarkmark\n"); sleep(3);
 			}
+			else {printf("\nErro esquisito no Add\n");}
 		}
+
 
 		else if(strstr(ParseCode,":h")) returnvalue = 1;
 
@@ -442,7 +448,6 @@ int parseMessage(char* message){
 				char aux[1024];
 				memmove(aux,(Separator+1),(Separator2-Separator-2));
 				memmove(message,aux,1024);
-				returnvalue = 6;
 			}
 		}
 
@@ -450,7 +455,9 @@ int parseMessage(char* message){
 
 		//char ReturnMessage[1024] = strncpy((Separator+1),ReturnMessage,sizeof(*message) - (Separator - *message + 1));
 		//strcpy(message,strchr(message,' '));
-	}
+		
+		}
+
 	else
 	{
 		//printf("here");
@@ -461,7 +468,7 @@ int parseMessage(char* message){
 		//strcpy(message,dataMessage);
 		returnvalue = -1;
 	}
-	//printf("retoronou");
+
 	return returnvalue;
 
 }
