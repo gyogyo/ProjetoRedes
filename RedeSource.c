@@ -433,6 +433,7 @@ void sendMessage(char* address, char* message, int control){
 		send(socket_id,message,strlen(message),0);
 		if(message[0]!=':') saveListMsg(0,"127.0.0.1",message);
 		close(socket_id);
+		if(!control && message[0] == ':' && message[1] == 'a') sleep(3);
 		//sleep(3);
 	}
 	pthread_mutex_unlock(&sendMutex);
