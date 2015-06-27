@@ -75,9 +75,9 @@ void* pingThread(void){
 	{
 		pthread_mutex_lock(&pingMutex);
 		connection* iterator = ContactList.first;
-		logMsg("something1");
+		//logMsg("something1");
 		while(iterator!=NULL){
-			logMsg("something2");
+			//logMsg("something2");
 			if(iterator->counter==0)
 				iterator->online=0;
 			else{
@@ -458,6 +458,7 @@ void parseReceived(char* address, char* message){
 			removeContactRemote(address);
 		}
 		else if(strstr(ParseCode,":o")){
+			logMsg("chegou a mamae e o papai");
 			connection* user = searchContact(address); 
 			user->online=1;
 			user->counter=3;
@@ -648,7 +649,7 @@ void printContactList(void){
 		if(iterator->online)
 			printf("\nUsername: %s Address: %s Online: Sim",iterator->username,iterator->address); 
 		else		
-			printf("\nUsername: %s Address: %s Online: Sim",iterator->username,iterator->address); 
+			printf("\nUsername: %s Address: %s Online: Nao",iterator->username,iterator->address); 
 		iterator = iterator->next;
 	}
 
