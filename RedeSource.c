@@ -42,7 +42,7 @@ char quit;
 pthread_mutex_t receivedMutex, pingMutex;
 char receivedInfo[2][1024];
 
-void sendMessage(char* address, char* message);
+void sendMessage(char* address, char* message, int control);
 void addAddress(char* address);
 void addContact(char* address, char* username);
 void addContactRemote(char* address, char* username);
@@ -290,7 +290,7 @@ void* messengerThread(void){
 	}
 }
 
-void sendMessage(char* address, char* message, char control){
+void sendMessage(char* address, char* message, int control){
 
 	int socket_id;
 	struct hostent* host;
@@ -355,7 +355,7 @@ void addContact(char* address, char* username){
 	connection* newConnection = malloc(sizeof(connection));
 	strcpy(newConnection->address,address);
 	strcpy(newConnection->username,username);
-	newConnection->online=status;
+	newConnection->online=1;
 	newConnection->next = NULL;
 
 	if(iterator == NULL) ContactList.first = newConnection;
@@ -374,7 +374,7 @@ void addContactRemote(char* address, char* username){
 	connection* newConnection = malloc(sizeof(connection));
 	strcpy(newConnection->address,address);
 	strcpy(newConnection->username,username);
-	newConnection->online=status;
+	newConnection->online=1;
 	newConnection->next = NULL;
 
 	if(iterator == NULL) ContactList.first = newConnection;
