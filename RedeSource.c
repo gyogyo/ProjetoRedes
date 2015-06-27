@@ -315,7 +315,18 @@ void* messengerThread(void){
 
 			case -1: //"Msg":
 			if(activeContact != NULL){
-				sendMessage(activeContact->address,buffer,0);	
+				if(activeContact->online == 1){
+					sendMessage(activeContact->address,buffer,0);	
+				}
+				
+				else{
+					setvbuf(stdout, NULL, _IONBF,0);
+					printf("\33[H\33[2J");
+					printf("##################################################################\n#\n#");
+					printf(" %s nao esta online!\n#\n", activeContact->username);
+					printf("##################################################################");
+					sleep(1);
+				}
 			}
 			else{
 				setvbuf(stdout, NULL, _IONBF,0);
@@ -783,7 +794,19 @@ void groupMessage(char* buffer){
 				while(iterator != NULL && strcmp(iterator->username,userSelector[i])!=0)
 					iterator = iterator->next;
 				if(iterator != NULL) //Encontrou username na lista de contatos
-					sendMessage(iterator->address,buffer,0);
+
+					if(iterator->online == 1){	
+						sendMessage(iterator->address,buffer,0);
+					}
+				
+					else{
+						setvbuf(stdout, NULL, _IONBF,0);
+						printf("\33[H\33[2J");
+						printf("##################################################################\n#\n#");
+						printf(" %s nao esta online!\n#\n", iterator->username);
+						printf("##################################################################");
+						sleep(1);
+					}
 			}
 		
 	}
