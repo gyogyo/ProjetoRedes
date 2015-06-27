@@ -345,7 +345,7 @@ void* messengerThread(void){
 			printf("##################################################################\n#\n#");
 			printf(" Atualizando!\n#\n");
 			printf("##################################################################");
-			sleep(1);
+			sleep(0.5);
 			break;
 
 			case 8: //"List":
@@ -425,15 +425,15 @@ void sendMessage(char* address, char* message, int control){
 					
 			}	
 			else{
-				printf("##################################################################\n#\n#");
-				printf(" Mandando mensagem para %s\n", address);
-				printf("#\n##################################################################");
+				//printf("##################################################################\n#\n#");
+				//printf(" Mandando mensagem para %s\n", address);
+				//printf("#\n##################################################################");
 			}
 		}
 		send(socket_id,message,strlen(message),0);
 		if(message[0]!=':') saveListMsg(0,"127.0.0.1",message);
 		close(socket_id);
-		sleep(3);
+		//sleep(3);
 	}
 	pthread_mutex_unlock(&sendMutex);
 }
