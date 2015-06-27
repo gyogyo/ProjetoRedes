@@ -339,7 +339,7 @@ void* messengerThread(void){
 			break;
 
 			case 7: //"Frsh":
-			activeContact = ContactList.first;
+			//activeContact = ContactList.first;
 			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
