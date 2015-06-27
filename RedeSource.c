@@ -740,13 +740,11 @@ int parseMessage(char* message){
 
 		//char ReturnMessage[1024] = strncpy((Separator+1),ReturnMessage,sizeof(*message) - (Separator - *message + 1));
 		//strcpy(message,strchr(message,' '));
-		
+		else{
+			returnvalue=99;
 		}
-		else	returnvalue=99;
-		
-
-	else
-	{
+	}
+	else{
 		//printf("here");
 		//char dataMessage[1024];
 		//strcpy(dataMessage,thisUsername);
@@ -755,9 +753,7 @@ int parseMessage(char* message){
 		//strcpy(message,dataMessage);
 		returnvalue = -1;
 	}
-
 	return returnvalue;
-
 }
 
 void groupMessage(char* buffer){
