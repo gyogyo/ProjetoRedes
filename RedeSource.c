@@ -897,7 +897,7 @@ void saveListMsg(int incoming, char* address, char* message){
 
 void printListMsg(char* address){
 	conversation* iterator = MessageList.first;
-	//printf(" tentei printar ");
+	connection* user = searchContact(address);
 	if(iterator == NULL || address == NULL){
 		printf("\n#");
 		return;
@@ -908,7 +908,7 @@ void printListMsg(char* address){
 		{
 			//printf("1st %d ", iterator->incoming);
 			if(!iterator->incoming) printf("#\n# %s: %s", thisUsername,iterator->message);
-			else if(iterator->incoming) printf("#\n# %s: %s", iterator->username, iterator->message);
+			else if(iterator->incoming) printf("#\n# %s: %s", user->username, iterator->message);
 		}
 		while(iterator->next!=NULL)
 		{
@@ -916,7 +916,7 @@ void printListMsg(char* address){
 			if(strcmp(iterator->address,address)==0||strcmp(iterator->address,"127.0.0.1")==0)
 			{
 				if(!iterator->incoming) printf("#\n# %s: %s", thisUsername, iterator->message);
-				else if(iterator->incoming) printf("#\n# %s: %s", iterator->username, iterator->message);
+				else if(iterator->incoming) printf("#\n# %s: %s", user->username, iterator->message);
 			}
 		}
 		printf("#");
