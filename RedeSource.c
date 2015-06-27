@@ -37,19 +37,19 @@ typedef struct {
 connection_list ContactList;
 conversation_list MessageList;
 char* thisUsername;
-char quit;
-
+char quit, justadd;
 pthread_mutex_t receivedMutex, pingMutex, sendMutex;
 char receivedInfo[2][1024];
 
 void sendMessage(char* address, char* message, int control);
-void addAddress(char* address);
+void addAddress(char* address, int control);
 void addContact(char* address, char* username);
 void addContactRemote(char* address, char* username);
 void removeContact(char* username);
 void removeContactRemote(char* address);
 connection* searchContact(char* address);
 void groupMessage(char*);
+int isEmpty();
 void printContactList(void);
 void saveContacts(void);
 void loadContacts(void);
@@ -79,8 +79,9 @@ void* pingThread(void){
 		//logMsg("something1");
 		while(iterator!=NULL){
 			//logMsg("something2");
-			if(iterator->counter==0)
+			if(iterator->counter==0){
 				iterator->online=0;
+			}
 			//logMsg("tentou - ");
 			struct sockaddr_in si_other;
 			int s, i, slen=sizeof(si_other);
@@ -97,7 +98,7 @@ void* pingThread(void){
 			{
 				logMsg("Erro no envio UDP");
 			}
-			logMsg("enviar\n");
+			//logMsg("enviar\n");
 			close(s);	
 			if(iterator->counter!=0)		
 				iterator->counter=iterator->counter-1;
@@ -142,9 +143,11 @@ void* receiverThread(void){
 		logMsg("Erro de Listen");
 		exit(0);
 	}
+	setvbuf(stdout, NULL, _IONBF, 0);
 	printf("\33[H\33[2J");
-	printf("Servidor TCP esperando por conexoes na porta 7123\n");
-
+	printf("##################################################################");
+	printf("\n#\n# Servidor TCP esperando por conexoes na porta 7123\n#\n");
+	printf("##################################################################");
 	pthread_t PopupThread; //Popup Thread que o Gyogyo-san queria tanto
 
 	while(!quit){
@@ -207,7 +210,7 @@ void* pingReceiverThread(void){
 			logMsg("Erro de recepcao");
 			exit(0);		
 		}
-		logMsg("recebeusmgthng");
+		//logMsg("recebeusmgthng");
 		bytes_received=strlen(message);//(connection_id,message,1024,0);
       		message[bytes_received] = '\0';
 		parseReceived(inet_ntoa(incoming_address.sin_addr),message);
@@ -222,15 +225,37 @@ void* messengerThread(void){
 	char** groupmessage;
 	sleep(3);
 	while(!quit){
+		if(justadd&&activeContact == NULL){
+			setvbuf(stdout, NULL, _IONBF, 0);
+			printf("\33[H\33[2J");
+			printf("##################################################################\n#");
+			printf("\n# Aguarde\n#\n");
+			printf("##################################################################");
+			sleep(3);
+			justadd=0;
+			activeContact = ContactList.first;
+		}
+		else if(activeContact == NULL){
+			setvbuf(stdout, NULL, _IONBF, 0);
+			printf("\33[H\33[2J");
+			printf("##################################################################");
+			printf("\n#\n# Entre com qualquer linha para continuar.\n? ");
+			getc(stdin);
+			activeContact = ContactList.first;
+		}
+		setvbuf(stdout, NULL, _IONBF, 0);
 		printf("\33[H\33[2J");
 		if(activeContact != NULL){
-			printf("Conversando com %s:",activeContact->username);
+			printf("##################################################################");
+			printf("\n# Conversando com %s:",activeContact->username);
 			printListMsg(activeContact->address);
 			//printest(activeContact->address);
-			printf("\nMensagem ou Comando: ");
+			printf("\n? Mensagem ou Comando: ");
 		}		
 		else{
-			printf("Nao ha contatos adicionados\nAdicione um contato utilizando :a\nComando: ");
+			//printf("\33[H\33[2J");
+			printf("##################################################################\n#\n");
+			printf("# Nao ha contatos adicionados\n# Adicione um contato utilizando :a IP\n# Comando: ");
 		}
 		//printf("here0");
 		//fflush(stdin);
@@ -252,15 +277,21 @@ void* messengerThread(void){
 				} while(strcmp(activeContact->username,buffer) != 0 && activeContact != Marker);
 			}
 			else{
+				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
-				printf("Nao ha contatos adicionados ou o contato especificado nao existe!\n");
+				printf("##################################################################\n#\n#");
+				printf(" Nao ha contatos adicionados ou o contato especificado nao existe!\n#\n");
+				printf("##################################################################");
 				sleep(1);
 			}
 			break;
 
 			case 3: //"Exi":
+			setvbuf(stdout, NULL, _IONBF, 0);
 			printf("\33[H\33[2J");
-			printf("Terminando o programa!\n");
+			printf("##################################################################\n#\n");
+			printf("# Terminando o programa!\n");
+			printf("#\n##################################################################");			
 			sleep(1);
 			printf("\33[H\33[2J");
 			quit = 1;
@@ -268,7 +299,7 @@ void* messengerThread(void){
 
 			case 0: //"Add":
 			//printf("\nImprimindo buffer %s\n", buffer);
-			addAddress(buffer);
+			addAddress(buffer,0);
 			break;
 
 			case 2: //"Rem":
@@ -287,16 +318,22 @@ void* messengerThread(void){
 				sendMessage(activeContact->address,buffer,0);	
 			}
 			else{
+				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
-				printf("Nao ha contatos adicionados!\n");
+				printf("##################################################################\n#\n#");
+				printf(" Nao ha contatos adicionados!\n#\n");
+				printf("##################################################################");
 				sleep(1);
 			}
 			break;
 
 			case 7: //"Frsh":
 			activeContact = ContactList.first;
+			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
-			printf("Atualizando!\n");
+			printf("##################################################################\n#\n#");
+			printf(" Atualizando!\n#\n");
+			printf("##################################################################");
 			sleep(1);
 			break;
 
@@ -306,8 +343,11 @@ void* messengerThread(void){
 				printContactList();
 			}
 			else{
+				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
-				printf("Nao ha contatos adicionados!\n");
+				printf("##################################################################\n#\n#");
+				printf(" Nao ha contatos adicionados!\n#\n");
+				printf("##################################################################");
 				sleep(1);
 			}
 
@@ -366,12 +406,18 @@ void sendMessage(char* address, char* message, int control){
 	else{
 		if(!control){
 			printf("\33[H\33[2J");
-			if(message[0] == ':' && message[1] == 'a')
-			{
-				printf("Adicionando %s\n", address);	
+			if(message[0] == ':' && message[1] == 'a'){
+				printf("##################################################################\n#\n#");
+				printf(" Adicionando %s\n", address);	
+				printf("#\n##################################################################");
+				if(isEmpty()) justadd=1;
+					
 			}	
-			else
-				printf("Mandando mensagem para %s\n", address);
+			else{
+				printf("##################################################################\n#\n#");
+				printf(" Mandando mensagem para %s\n", address);
+				printf("#\n##################################################################");
+			}
 		}
 		send(socket_id,message,strlen(message),0);
 		if(message[0]!=':') saveListMsg(0,"127.0.0.1",message);
@@ -381,51 +427,69 @@ void sendMessage(char* address, char* message, int control){
 	pthread_mutex_unlock(&sendMutex);
 }
 
-void addAddress(char* address){
+void addAddress(char* address, int control){
 	//printf("here");
 	char addMessage[1024];
 	strcpy(addMessage,":a ");
 	strcat(addMessage,thisUsername);
 	//printf("addMessage %s!", addMessage);
-	sendMessage(address,addMessage,0);
+	sendMessage(address,addMessage,control);
 }
 
 void addContact(char* address, char* username){
 	pthread_mutex_lock(&pingMutex);
-	connection* iterator = ContactList.first;
-	connection* newConnection = malloc(sizeof(connection));
-	strcpy(newConnection->address,address);
-	strcpy(newConnection->username,username);
-	newConnection->online=1;
-	newConnection->counter=3;
-	newConnection->next = NULL;
+	connection* iterator = searchContact(address);
+	if(iterator==NULL){
+		iterator = ContactList.first;
+		connection* newConnection = malloc(sizeof(connection));
+		strcpy(newConnection->address,address);
+		strcpy(newConnection->username,username);
+		newConnection->online=1;
+		newConnection->counter=3;
+		newConnection->next = NULL;
 
-	if(iterator == NULL) ContactList.first = newConnection;
-	else {
-		while(iterator->next != NULL) iterator = iterator->next;
-		iterator->next = newConnection;
+		if(iterator == NULL) ContactList.first = newConnection;
+		else {
+			while(iterator->next != NULL) iterator = iterator->next;
+			iterator->next = newConnection;
+		}
+
+		ContactList.size = ContactList.size + 1;
 	}
-
-	ContactList.size = ContactList.size + 1;
+	else
+	{
+		iterator->online=1;
+		iterator->counter=3;
+		strcpy(iterator->username,username);		
+	}		
 	pthread_mutex_unlock(&pingMutex);
 }
 
 void addContactRemote(char* address, char* username){
 	pthread_mutex_lock(&pingMutex);
-	connection* iterator = ContactList.first;
-	connection* newConnection = malloc(sizeof(connection));
-	strcpy(newConnection->address,address);
-	strcpy(newConnection->username,username);
-	newConnection->online=1;
-	newConnection->next = NULL;
+	connection* iterator = searchContact(address);
+	if(iterator==NULL){
+		iterator = ContactList.first;
+		connection* newConnection = malloc(sizeof(connection));
+		strcpy(newConnection->address,address);
+		strcpy(newConnection->username,username);
+		newConnection->online=1;
+		newConnection->next = NULL;
 
-	if(iterator == NULL) ContactList.first = newConnection;
-	else {
-		while(iterator->next != NULL) iterator = iterator->next;
-		iterator->next = newConnection;
+		if(iterator == NULL) ContactList.first = newConnection;
+		else {
+			while(iterator->next != NULL) iterator = iterator->next;
+			iterator->next = newConnection;
+		}
+
+		ContactList.size = ContactList.size + 1;
 	}
-
-	ContactList.size = ContactList.size + 1;
+	else
+	{
+		iterator->online=1;
+		iterator->counter=3;
+		strcpy(iterator->username,username);		
+	}
 	pthread_mutex_unlock(&pingMutex);
 	char addMessage[1024];
 	strcpy(addMessage,":k ");
@@ -478,6 +542,12 @@ connection* searchContact(char* address){
 		}
 	}
 	return NULL;
+}
+
+int isEmpty(){
+	connection* iterator = ContactList.first;
+	if(iterator == NULL) return 1;
+	else	return 0;
 }
 
 void removeContactRemote(char* address){
@@ -542,7 +612,7 @@ void parseReceived(char* address, char* message){
 			//logMsg("chegou a mamae e o papai");
 			connection* user = searchContact(address); 
 			if(user==NULL)
-				addAddress(address);
+				addAddress(address,1);
 			else if(user->online==0){			
 				user->online=1;
 				user->counter=3;
@@ -723,21 +793,22 @@ void groupMessage(char* buffer){
 }
 
 void printContactList(void){
-
+	setvbuf(stdout, NULL, _IONBF,0);
 	printf("\33[H\33[2J");
-	printf("Imprimindo lista de contatos:\n");
+	printf("##################################################################\n#\n#");
+	printf(" Imprimindo lista de contatos:\n#");
 
 	connection* iterator = ContactList.first;
 
 	while(iterator != NULL){
 		if(iterator->online)
-			printf("\nUsername: %s Address: %s Online: Sim",iterator->username,iterator->address); 
+			printf("\n#\n# Username: %s\n# Address:  %s\n# Online:   Sim",iterator->username,iterator->address); 
 		else		
-			printf("\nUsername: %s Address: %s Online: Nao",iterator->username,iterator->address); 
+			printf("\n#\n# Username: %s\n# Address:  %s\n# Online:   Nao",iterator->username,iterator->address); 
 		iterator = iterator->next;
 	}
 
-	printf("\n\nEntre com qualquer linha para continuar.\n");
+	printf("\n#\n# Entre com qualquer linha para continuar.\n");
 	getc(stdin);
 }
 
@@ -763,7 +834,7 @@ void loadContacts(void){
 	char buffer[512];
 	if(LoadFile != NULL&&ftell(LoadFile)){
 		while(fgets(buffer,16,LoadFile)){
-			addAddress(buffer);
+			addAddress(buffer,1);
 		}
 		fclose(LoadFile);
 	}
@@ -802,26 +873,27 @@ void printListMsg(char* address){
 	conversation* iterator = MessageList.first;
 	//printf(" tentei printar ");
 	if(iterator == NULL || address == NULL){
-		//printf("nemfoi");
+		printf("\n#");
 		return;
 	}
 	else{
-		printf("\n");
+		printf("\n#\n");
 		if(strcmp(iterator->address,address)==0||strcmp(iterator->address,"127.0.0.1")==0)
 		{
 			//printf("1st %d ", iterator->incoming);
-			if(!iterator->incoming) printf("\nlocalhost: %s", iterator->message);
-			else if(iterator->incoming) printf("\n%s: %s", iterator->address, iterator->message);
+			if(!iterator->incoming) printf("#\n# localhost: %s", iterator->message);
+			else if(iterator->incoming) printf("#\n# %s: %s", iterator->address, iterator->message);
 		}
 		while(iterator->next!=NULL)
 		{
 			iterator=iterator->next;
 			if(strcmp(iterator->address,address)==0||strcmp(iterator->address,"127.0.0.1")==0)
 			{
-				if(!iterator->incoming) printf("\nlocalhost: %s", iterator->message);
-				else if(iterator->incoming) printf("\n%s: %s", iterator->address, iterator->message);
+				if(!iterator->incoming) printf("#\n# localhost: %s", iterator->message);
+				else if(iterator->incoming) printf("#\n# %s: %s", iterator->address, iterator->message);
 			}
 		}
+		printf("#");
 	}
 	//printf(" terminei printar "); sleep(3);
 }
@@ -846,13 +918,16 @@ void printest(char* address){
 
 void init(void){
 	thisUsername = (char*) malloc (64*sizeof(char));
+	setvbuf(stdout, NULL, _IONBF, 0);
 	printf("\33[H\33[2J");
-	printf("Bem vindo ao messenger!\nPor favor digite seu nome de usuario:\nUsername: ");
+	printf("##################################################################\n#\n#");
+	printf(" Bem vindo ao messenger!\n# Por favor digite seu nome de usuario.\n# Username: ");
 	__fpurge(stdin);
 	fgets(thisUsername,63,stdin);
 	char* ReturnOfNewlineKiller = strrchr(thisUsername,'\n');
 	*ReturnOfNewlineKiller = '\0';
 	quit = 0;
+	justadd = 0;
 	//ContactList.first = malloc(sizeof(connection));
 	//strcpy(ContactList.first->address,"localhost");
 	//strcpy(ContactList.first->username,thisUsername);
