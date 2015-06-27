@@ -467,6 +467,8 @@ void parseReceived(char* address, char* message){
 
 	else {
 		//printf("th dude");
+		logMsg("wtf ");
+		logMsg(message);
 		saveListMsg(1,address,message);
 		//printf("address %s message %s", address,message);
 	}
@@ -501,7 +503,7 @@ int parseMessage(char* message){
 				//sleep(20);
 				//printf("\nMarkmark\n"); sleep(3);
 			}
-			else {printf("\nErro esquisito no Add\n");}
+			else {logMsg("\nErro esquisito no Add\n");}
 		}
 
 
