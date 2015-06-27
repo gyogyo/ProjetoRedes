@@ -907,16 +907,16 @@ void printListMsg(char* address){
 		if(strcmp(iterator->address,address)==0||strcmp(iterator->address,"127.0.0.1")==0)
 		{
 			//printf("1st %d ", iterator->incoming);
-			if(!iterator->incoming) printf("#\n# localhost: %s", iterator->message);
-			else if(iterator->incoming) printf("#\n# %s: %s", iterator->address, iterator->message);
+			if(!iterator->incoming) printf("#\n# %s: %s", thisUsername,iterator->message);
+			else if(iterator->incoming) printf("#\n# %s: %s", iterator->username, iterator->message);
 		}
 		while(iterator->next!=NULL)
 		{
 			iterator=iterator->next;
 			if(strcmp(iterator->address,address)==0||strcmp(iterator->address,"127.0.0.1")==0)
 			{
-				if(!iterator->incoming) printf("#\n# localhost: %s", iterator->message);
-				else if(iterator->incoming) printf("#\n# %s: %s", iterator->address, iterator->message);
+				if(!iterator->incoming) printf("#\n# %s: %s", thisUsername, iterator->message);
+				else if(iterator->incoming) printf("#\n# %s: %s", iterator->username, iterator->message);
 			}
 		}
 		printf("#");
