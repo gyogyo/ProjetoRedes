@@ -39,7 +39,7 @@ conversation_list MessageList;
 char* thisUsername;
 char quit;
 
-pthread_mutex_t receivedMutex, pingMutex;
+pthread_mutex_t receivedMutex, pingMutex, sendMutex;
 char receivedInfo[2][1024];
 
 void sendMessage(char* address, char* message, int control);
@@ -81,25 +81,26 @@ void* pingThread(void){
 			//logMsg("something2");
 			if(iterator->counter==0)
 				iterator->online=0;
-			else{
-				struct sockaddr_in si_other;
-				int s, i, slen=sizeof(si_other);
-				struct hostent *host;
-				host=gethostbyname(iterator->address);
-				if((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
-					logMsg("Erro de socket");		
-				}
-				memset((char*) &si_other, 0, sizeof(si_other));
-				si_other.sin_family=AF_INET;
-				si_other.sin_port=htons(7123);
-				si_other.sin_addr = *((struct in_addr *)host->h_addr);
-				if(sendto(s,":ok", 3, 0, (struct sockaddr *) &si_other, slen)==-1)
-				{
-					logMsg("Erro no envio UDP");
-				}
-				close(s);			
-				iterator->counter=iterator->counter-1;
+			//logMsg("tentou - ");
+			struct sockaddr_in si_other;
+			int s, i, slen=sizeof(si_other);
+			struct hostent *host;
+			host=gethostbyname(iterator->address);
+			if((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
+				logMsg("Erro de socket");		
 			}
+			memset((char*) &si_other, 0, sizeof(si_other));
+			si_other.sin_family=AF_INET;
+			si_other.sin_port=htons(57123);
+			si_other.sin_addr = *((struct in_addr *)host->h_addr);
+			if(sendto(s,":ok", 3, 0, (struct sockaddr *) &si_other, slen)==-1)
+			{
+				logMsg("Erro no envio UDP");
+			}
+			logMsg("enviar\n");
+			close(s);	
+			if(iterator->counter!=0)		
+				iterator->counter=iterator->counter-1;
 			iterator=iterator->next;
 	
 		}
@@ -173,6 +174,45 @@ void* receiverThread(void){
 		sleep(1);
 
 	}
+}
+
+void* pingReceiverThread(void){
+
+	int socket_id, true = 1;	struct sockaddr_in address;
+	struct sockaddr_in incoming_address;	int address_size = sizeof(struct sockaddr_in);
+	int connection_id;
+
+	char message[1024];
+	int bytes_received;
+
+	if ((socket_id = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+		logMsg("Erro no Socket");
+		exit(0);
+	}
+
+	memset((char *) &address, 0, sizeof(address));
+
+	address.sin_family = AF_INET;
+	address.sin_port = htons(57123);
+	address.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	if(bind(socket_id, (struct sockaddr *) &address, sizeof(address))==-1){
+		logMsg("Erro no bind do socket UDP");
+		exit(1);
+	
+	}
+	logMsg("bindiu");
+	while(!quit){
+		if(recvfrom(socket_id, message, 1024, 0, (struct sockaddr *) &incoming_address, &address_size)==-1){
+			logMsg("Erro de recepcao");
+			exit(0);		
+		}
+		logMsg("recebeusmgthng");
+		bytes_received=strlen(message);//(connection_id,message,1024,0);
+      		message[bytes_received] = '\0';
+		parseReceived(inet_ntoa(incoming_address.sin_addr),message);
+	}
+
 }
 
 void* messengerThread(void){
@@ -291,7 +331,7 @@ void* messengerThread(void){
 }
 
 void sendMessage(char* address, char* message, int control){
-
+	pthread_mutex_lock(&sendMutex);
 	int socket_id;
 	struct hostent* host;
 	struct sockaddr_in server_address;
@@ -338,6 +378,7 @@ void sendMessage(char* address, char* message, int control){
 		close(socket_id);
 		sleep(3);
 	}
+	pthread_mutex_unlock(&sendMutex);
 }
 
 void addAddress(char* address){
@@ -356,6 +397,7 @@ void addContact(char* address, char* username){
 	strcpy(newConnection->address,address);
 	strcpy(newConnection->username,username);
 	newConnection->online=1;
+	newConnection->counter=3;
 	newConnection->next = NULL;
 
 	if(iterator == NULL) ContactList.first = newConnection;
@@ -497,17 +539,18 @@ void parseReceived(char* address, char* message){
 			removeContactRemote(address);
 		}
 		else if(strstr(ParseCode,":o")){
-			logMsg("chegou a mamae e o papai");
+			//logMsg("chegou a mamae e o papai");
 			connection* user = searchContact(address); 
-			user->online=1;
-			user->counter=3;
+			if(user==NULL)
+				addAddress(address);
+			else if(user->online==0){			
+				user->online=1;
+				user->counter=3;
+			}
 		}
 	}
 
 	else {
-		//printf("th dude");
-		logMsg(" wtf ");
-		logMsg(message);
 		saveListMsg(1,address,message);
 		//printf("address %s message %s", address,message);
 	}
@@ -682,7 +725,7 @@ void groupMessage(char* buffer){
 void printContactList(void){
 
 	printf("\33[H\33[2J");
-	printf("\nImprimindo lista de contatos:\n");
+	printf("Imprimindo lista de contatos:\n");
 
 	connection* iterator = ContactList.first;
 
@@ -823,6 +866,10 @@ void init(void){
 		printf("Error creating Mutex.\n");
 		exit(0);
 	}
+	if(pthread_mutex_init(&sendMutex,NULL) != 0){
+		printf("Error creating Mutex.\n");
+		exit(0);
+	}
 }
 
 
@@ -832,6 +879,7 @@ void end(void){
 	free(thisUsername);
 	pthread_mutex_destroy(&receivedMutex);
 	pthread_mutex_destroy(&pingMutex);
+	pthread_mutex_destroy(&sendMutex);
 	exit(0);
 }
 void main(void){
@@ -839,6 +887,7 @@ void main(void){
 	pthread_t ReceiverThread;
 	pthread_t MessengerThread;
 	pthread_t PingThread;
+	pthread_t PingReceiverThread;
 
 	init();
 
@@ -855,6 +904,11 @@ void main(void){
 	}
 
 	if (pthread_create(&PingThread,0,(void*) pingThread,(void*) 0) != 0) { 
+		printf("Error creating multithread.\n");
+		exit(0);
+	}
+
+	if (pthread_create(&PingReceiverThread,0,(void*) pingReceiverThread,(void*) 0) != 0) { 
 		printf("Error creating multithread.\n");
 		exit(0);
 	}
