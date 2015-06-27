@@ -370,11 +370,22 @@ void* messengerThread(void){
 			break;
 
 			case 1: //"Hlp":
-			printf("Comandos do messenger:\n:help (:h) - Exibe esta mensagem de ajuda\n:fresh (:f) - Atualiza a conversa atual\n:add <address> (:a) - Adiciona um contato pelo seu endereco IP\n:remove <username> (:r) - Remove um contato adicionado\n:quit (:q) - Sai do messenger\n:tab <username> (:t) - Itera pelos contatos salvos, username for vazio, itera ao proximo\n:group @<username1> @<username2> ... <mensagem>  (:g) - Mensagem em grupo para as pessoas da lista\n");
+			setvbuf(stdout, NULL, _IONBF,0);
+			printf("\33[H\33[2J");
+			printf("##################################################################\n#\n#");
+			printf("# Comandos do messenger:\n# :help (:h) - Exibe esta mensagem de ajuda\n# :fresh (:f) - Atualiza a conversa atual\n# :add <address> (:a) - Adiciona um contato pelo seu endereco IP\n# :remove <username> (:r) - Remove um contato adicionado\n# :quit (:q) - Sai do messenger\n# :tab <username> (:t) - Itera pelos contatos salvos, username for vazio, itera ao proximo\n# :group @<username1> @<username2> ... <mensagem>  (:g) - Mensagem em grupo para as pessoas da lista\n");
+			printf("\n#\n##################################################################\n#\n#");
+			printf("\n#\n# Entre com qualquer linha para retornar ao modo de comando.\n? ");
+			getc(stdin);
 			break;
 
 			default:
+			printf("\33[H\33[2J");
+			printf("##################################################################\n#\n#");
 			printf("Comando nao identificado. Digite :help para informacoes\n");
+			printf("\n#\n##################################################################");
+			printf("\n#\n# Entre com qualquer linha para retornar ao modo de comando.\n? ");
+			getc(stdin);
 
 		}
 		//printf("nmb %d ", messagetype); sleep(2);
@@ -715,7 +726,7 @@ int parseMessage(char* message){
 		else if(strstr(ParseCode,":g")) {
 			returnvalue = 6;
 			char* Separator2 = strrchr(message,'\n');
-			*Separator2 = '\0';
+			//*Separator2 = '\0';
 			if(Separator != Separator2) {
 				char aux[1024];
 				strcpy(aux,Separator+1);
@@ -785,7 +796,8 @@ void groupMessage(char* buffer){
 
 		else identifier++;
 	}
-
+	//tam=strlen(buffer);
+	//buffer[tam]='\n';
 	//if(setupFlag == 1) Não teve mensagem pra enviar, dur.
 	//else identifier2 terá a mensagem para enviar.
 	if(!setupFlag) {
