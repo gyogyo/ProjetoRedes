@@ -373,16 +373,16 @@ void* messengerThread(void){
 			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
-			printf("# Comandos do messenger:\n# :help (:h) - Exibe esta mensagem de ajuda\n# :fresh (:f) - Atualiza a conversa atual\n# :add <address> (:a) - Adiciona um contato pelo seu endereco IP\n# :remove <username> (:r) - Remove um contato adicionado\n# :quit (:q) - Sai do messenger\n# :tab <username> (:t) - Itera pelos contatos salvos, username for vazio, itera ao proximo\n# :group @<username1> @<username2> ... <mensagem>  (:g) - Mensagem em grupo para as pessoas da lista\n");
+			printf("# Comandos do messenger:\n# :help (:h) - Exibe esta mensagem de ajuda\n# :fresh (:f) - Atualiza a conversa atual\n# :add <address> (:a) - Adiciona um contato pelo seu endereco IP\n# :remove <username> (:r) - Remove um contato adicionado\n# :quit (:q) - Sai do messenger\n# :tab <username> (:t) - Itera pelos contatos salvos, username for vazio, itera ao proximo\n# :group @<username1> @<username2> ... <mensagem>  (:g) - Mensagem em grupo para as pessoas da lista");
 			printf("\n#\n##################################################################\n#\n#");
-			printf("\n#\n# Entre com qualquer linha para retornar ao modo de comando.\n? ");
+			printf(" Entre com qualquer linha para retornar ao modo de comando.\n? ");
 			getc(stdin);
 			break;
 
 			default:
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
-			printf("Comando nao identificado. Digite :help para informacoes\n");
+			printf(" Comando nao identificado.\n# Digite :help para informacoes\n#");
 			printf("\n#\n##################################################################");
 			printf("\n#\n# Entre com qualquer linha para retornar ao modo de comando.\n? ");
 			getc(stdin);
@@ -442,7 +442,7 @@ void sendMessage(char* address, char* message, int control){
 			}
 		}
 		send(socket_id,message,strlen(message),0);
-		if(message[0]!=':') saveListMsg(0,"127.0.0.1",message);
+		if(message[0]!=':') saveListMsg(0,address,message);
 		close(socket_id);
 		if(!control && message[0] == ':' && message[1] == 'a') sleep(3);
 		//sleep(3);
@@ -742,6 +742,8 @@ int parseMessage(char* message){
 		//strcpy(message,strchr(message,' '));
 		
 		}
+		else	returnvalue=99;
+		
 
 	else
 	{
@@ -917,7 +919,7 @@ void printListMsg(char* address){
 	}
 	else{
 		printf("\n#\n");
-		if(strcmp(iterator->address,address)==0||strcmp(iterator->address,"127.0.0.1")==0)
+		if(strcmp(iterator->address,address)==0)
 		{
 			//printf("1st %d ", iterator->incoming);
 			if(!iterator->incoming) printf("#\n# %s: %s", thisUsername,iterator->message);
@@ -926,7 +928,7 @@ void printListMsg(char* address){
 		while(iterator->next!=NULL)
 		{
 			iterator=iterator->next;
-			if(strcmp(iterator->address,address)==0||strcmp(iterator->address,"127.0.0.1")==0)
+			if(strcmp(iterator->address,address)==0)
 			{
 				if(!iterator->incoming) printf("#\n# %s: %s", thisUsername, iterator->message);
 				else if(iterator->incoming) printf("#\n# %s: %s", user->username, iterator->message);
