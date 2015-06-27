@@ -628,6 +628,9 @@ void parseReceived(char* address, char* message){
 				user->online=1;
 				user->counter=3;
 			}
+			else{
+				user->counter=3;
+			}
 		}
 	}
 
