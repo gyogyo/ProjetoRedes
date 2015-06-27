@@ -75,7 +75,9 @@ void* pingThread(void){
 	{
 		pthread_mutex_lock(&pingMutex);
 		connection* iterator = ContactList.first;
+		logMsg("something1");
 		while(iterator!=NULL){
+			logMsg("something2");
 			if(iterator->counter==0)
 				iterator->online=0;
 			else{
@@ -84,17 +86,15 @@ void* pingThread(void){
 				struct hostent *host;
 				host=gethostbyname(iterator->address);
 				if((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
-					perror("Erro de socket");
-					exit(-1);		
+					logMsg("Erro de socket");		
 				}
 				memset((char*) &si_other, 0, sizeof(si_other));
 				si_other.sin_family=AF_INET;
-				si_other.sin_port=htons(61999);
+				si_other.sin_port=htons(7123);
 				si_other.sin_addr = *((struct in_addr *)host->h_addr);
 				if(sendto(s,":ok", 3, 0, (struct sockaddr *) &si_other, slen)==-1)
 				{
-					perror("Erro no envio");
-					exit(1);		
+					logMsg("Erro no envio UDP");
 				}
 				close(s);			
 				iterator->counter=iterator->counter-1;
@@ -127,7 +127,7 @@ void* receiverThread(void){
 	}
 
 	address.sin_family = AF_INET;
-	address.sin_port = htons(7000);
+	address.sin_port = htons(7123);
 	address.sin_addr.s_addr = INADDR_ANY;
 	bzero(&(address.sin_zero),8);
 
@@ -141,7 +141,7 @@ void* receiverThread(void){
 		exit(0);
 	}
 	printf("\33[H\33[2J");
-	printf("Servidor TCP esperando por conexoes na porta 7000\n");
+	printf("Servidor TCP esperando por conexoes na porta 7123\n");
 
 	pthread_t PopupThread; //Popup Thread que o Gyogyo-san queria tanto
 
@@ -311,7 +311,7 @@ void sendMessage(char* address, char* message){
 	}
 
 	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(7000);
+	server_address.sin_port = htons(7123);
 	server_address.sin_addr = *((struct in_addr *)host->h_addr);
 	bzero(&(server_address.sin_zero),8);
 	
