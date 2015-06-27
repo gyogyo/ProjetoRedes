@@ -45,6 +45,7 @@ char receivedInfo[2][1024];
 void sendMessage(char* address, char* message);
 void addAddress(char* address);
 void addContact(char* address, char* username);
+void addContactRemote(char* address, char* username);
 void removeContact(char* username);
 void removeContactRemote(char* address);
 connection* searchContact(char* address);
@@ -362,6 +363,29 @@ void addContact(char* address, char* username){
 	pthread_mutex_unlock(&pingMutex);
 }
 
+void addContactRemote(char* address, char* username){
+	pthread_mutex_lock(&pingMutex);
+	connection* iterator = ContactList.first;
+	connection* newConnection = malloc(sizeof(connection));
+	strcpy(newConnection->address,address);
+	strcpy(newConnection->username,username);
+	newConnection->online=1;
+	newConnection->next = NULL;
+
+	if(iterator == NULL) ContactList.first = newConnection;
+	else {
+		while(iterator->next != NULL) iterator = iterator->next;
+		iterator->next = newConnection;
+	}
+
+	ContactList.size = ContactList.size + 1;
+	pthread_mutex_unlock(&pingMutex);
+	char addMessage[1024];
+	strcpy(addMessage,":k ");
+	strcat(addMessage,thisUsername);
+	sendMessage(address,addMessage);
+}
+
 void removeContact(char* username){
 	pthread_mutex_lock(&pingMutex);
 	connection* iterator = ContactList.first;
@@ -444,6 +468,15 @@ void parseReceived(char* address, char* message){
 		ParseCode[(Sep - message + 1)] = '\0';
 		//printf("a mensagem recebida foi parseada ParseCOde %s Message %s\n\n", ParseCode, message);
 		if(strstr(ParseCode,":a")){
+			//printf(" adicionando alguma coisa ");
+			char* Separator = strchr(message,' ');
+			logMsg("Added contact ");
+			logMsg(address);
+			addContactRemote(address,Separator+1);			
+			//printf("tentou adicionar %s %s", address, Separator+1);
+		}
+
+		else if(strstr(ParseCode,":k")){
 			//printf(" adicionando alguma coisa ");
 			char* Separator = strchr(message,' ');
 			logMsg("Added contact ");
