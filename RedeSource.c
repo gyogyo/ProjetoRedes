@@ -37,9 +37,10 @@ typedef struct {
 connection_list ContactList;
 conversation_list MessageList;
 char* thisUsername;
-char quit, justadd;
+char quit, justadd, removedTab;
 pthread_mutex_t receivedMutex, pingMutex, sendMutex;
 char receivedInfo[2][1024];
+connection* globalActive;
 
 void sendMessage(char* address, char* message, int control);
 void addAddress(char* address, int control);
@@ -50,6 +51,7 @@ void removeContactRemote(char* address);
 connection* searchContact(char* address);
 void groupMessage(char*);
 int isEmpty();
+void setGlobalActive(connection* address);
 void printContactList(void);
 void saveContacts(void);
 void loadContacts(void);
@@ -204,7 +206,7 @@ void* pingReceiverThread(void){
 		exit(1);
 	
 	}
-	logMsg("bindiu");
+	//logMsg("bindiu");
 	while(!quit){
 		if(recvfrom(socket_id, message, 1024, 0, (struct sockaddr *) &incoming_address, &address_size)==-1){
 			logMsg("Erro de recepcao");
@@ -259,9 +261,21 @@ void* messengerThread(void){
 		}
 		//printf("here0");
 		//fflush(stdin);
+		setGlobalActive(activeContact);
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
-		messagetype = parseMessage(buffer);	
+		messagetype = parseMessage(buffer);
+		if(removedTab){
+			setvbuf(stdout, NULL, _IONBF,0);
+			printf("\33[H\33[2J");
+			printf("##################################################################\n#\n#");
+			printf(" Usuario deletado!\n#\n", activeContact->username);
+			printf("##################################################################");
+			sleep(1);
+			removedTab=0;
+			messagetype=7;
+			activeContact = ContactList.first;
+		}	
 		switch(messagetype){
 
 			case 4: //"Tab":
@@ -358,7 +372,7 @@ void* messengerThread(void){
 			printf("##################################################################\n#\n#");
 			printf(" Atualizando!\n#\n");
 			printf("##################################################################");
-			sleep(0.5);
+			//sleep(0.5);
 			break;
 
 			case 8: //"List":
@@ -580,6 +594,10 @@ connection* searchContact(char* address){
 	return NULL;
 }
 
+void setGlobalActive(connection* address){
+	globalActive = address;
+}
+
 int isEmpty(){
 	connection* iterator = ContactList.first;
 	if(iterator == NULL) return 1;
@@ -593,7 +611,7 @@ void removeContactRemote(char* address){
 
 	if(iterator == NULL) return;
 	else if(strcmp(iterator->address,address) == 0) {
-		
+		if(strcmp(iterator->address,globalActive->address)==0) removedTab=1;
 		ContactList.first = iterator->next;
 		free(iterator);
 		ContactList.size = ContactList.size - 1;
@@ -603,6 +621,7 @@ void removeContactRemote(char* address){
 		while((iterator->next != NULL)) {
 			iterator2 = iterator->next;
 			if((strcmp(iterator2->address,address) == 0)){
+				if(strcmp(iterator->address,globalActive->address)==0) removedTab=1;
 				iterator->next = iterator2->next;
 				free(iterator2);
 				ContactList.size = ContactList.size - 1;
@@ -983,6 +1002,7 @@ void init(void){
 	*ReturnOfNewlineKiller = '\0';
 	quit = 0;
 	justadd = 0;
+	removedTab = 0;
 	//ContactList.first = malloc(sizeof(connection));
 	//strcpy(ContactList.first->address,"localhost");
 	//strcpy(ContactList.first->username,thisUsername);
