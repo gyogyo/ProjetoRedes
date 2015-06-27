@@ -244,7 +244,7 @@ void* messengerThread(void){
 
 			case -1: //"Msg":
 			if(activeContact != NULL){
-				sendMessage(activeContact->address,buffer);	
+				sendMessage(activeContact->address,buffer,0);	
 			}
 			else{
 				printf("\33[H\33[2J");
@@ -290,7 +290,7 @@ void* messengerThread(void){
 	}
 }
 
-void sendMessage(char* address, char* message){
+void sendMessage(char* address, char* message, char control){
 
 	int socket_id;
 	struct hostent* host;
@@ -323,15 +323,20 @@ void sendMessage(char* address, char* message){
 		close(socket_id);
 		sleep(3);
 	}
-
 	else{
-	printf("\33[H\33[2J");
-	printf("Mandando mensagem para %s\n", address);
-	
-	send(socket_id,message,strlen(message),0);
-	saveListMsg(0,"127.0.0.1",message);
-	close(socket_id);
-	sleep(3);
+		if(!control){
+			printf("\33[H\33[2J");
+			if(message[0] == ':' && message[1] == 'a')
+			{
+				printf("Adicionando %s\n", address);	
+			}	
+			else
+				printf("Mandando mensagem para %s\n", address);
+		}
+		send(socket_id,message,strlen(message),0);
+		if(message[0]!=':') saveListMsg(0,"127.0.0.1",message);
+		close(socket_id);
+		sleep(3);
 	}
 }
 
@@ -341,7 +346,7 @@ void addAddress(char* address){
 	strcpy(addMessage,":a ");
 	strcat(addMessage,thisUsername);
 	//printf("addMessage %s!", addMessage);
-	sendMessage(address,addMessage);
+	sendMessage(address,addMessage,0);
 }
 
 void addContact(char* address, char* username){
@@ -350,7 +355,7 @@ void addContact(char* address, char* username){
 	connection* newConnection = malloc(sizeof(connection));
 	strcpy(newConnection->address,address);
 	strcpy(newConnection->username,username);
-	newConnection->online=1;
+	newConnection->online=status;
 	newConnection->next = NULL;
 
 	if(iterator == NULL) ContactList.first = newConnection;
@@ -369,7 +374,7 @@ void addContactRemote(char* address, char* username){
 	connection* newConnection = malloc(sizeof(connection));
 	strcpy(newConnection->address,address);
 	strcpy(newConnection->username,username);
-	newConnection->online=1;
+	newConnection->online=status;
 	newConnection->next = NULL;
 
 	if(iterator == NULL) ContactList.first = newConnection;
@@ -383,7 +388,8 @@ void addContactRemote(char* address, char* username){
 	char addMessage[1024];
 	strcpy(addMessage,":k ");
 	strcat(addMessage,thisUsername);
-	sendMessage(address,addMessage);
+	//printf("addMessage %s!", addMessage);
+	sendMessage(address,addMessage,1);
 }
 
 void removeContact(char* username){
@@ -395,7 +401,7 @@ void removeContact(char* username){
 	else if(strcmp(iterator->username,username) == 0) {
 		
 		ContactList.first = iterator->next;
-		sendMessage(iterator->address,":r");
+		sendMessage(iterator->address,":r",0);
 		free(iterator);
 		ContactList.size = ContactList.size - 1;
 		return;
@@ -407,7 +413,7 @@ void removeContact(char* username){
 			printf("%s %s",iterator2->username,username);
 			if((strcmp(iterator2->username,username) == 0)){
 				iterator->next = iterator2->next;
-				sendMessage(iterator2->address,":r");
+				sendMessage(iterator2->address,":r",0);
 				free(iterator2);
 				ContactList.size = ContactList.size - 1;
 			}
@@ -500,7 +506,7 @@ void parseReceived(char* address, char* message){
 
 	else {
 		//printf("th dude");
-		logMsg("wtf ");
+		logMsg(" wtf ");
 		logMsg(message);
 		saveListMsg(1,address,message);
 		//printf("address %s message %s", address,message);
@@ -664,7 +670,7 @@ void groupMessage(char* buffer){
 				while(iterator != NULL && strcmp(iterator->username,userSelector[i])!=0)
 					iterator = iterator->next;
 				if(iterator != NULL) //Encontrou username na lista de contatos
-					sendMessage(iterator->address,buffer);
+					sendMessage(iterator->address,buffer,0);
 			}
 		
 	}
