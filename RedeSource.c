@@ -13,6 +13,8 @@
 typedef struct connection_node{
 	char address[512];
 	char username[64];
+	char online;
+	char counter;
 	struct connection_node* next;
 } connection;
 
@@ -37,7 +39,7 @@ conversation_list MessageList;
 char* thisUsername;
 char quit;
 
-pthread_mutex_t receivedMutex;
+pthread_mutex_t receivedMutex, pingMutex;
 char receivedInfo[2][1024];
 
 void sendMessage(char* address, char* message);
@@ -45,6 +47,7 @@ void addAddress(char* address);
 void addContact(char* address, char* username);
 void removeContact(char* username);
 void removeContactRemote(char* address);
+connection* searchContact(char* address);
 void groupMessage(char*);
 void printContactList(void);
 void saveContacts(void);
@@ -63,8 +66,45 @@ void* messageReceiverThread(void){
 	char information[2][1024];
 	strcpy(information[0],receivedInfo[0]);
 	strcpy(information[1],receivedInfo[1]);
-	pthread_mutex_unlock(&receivedMutex);
 	parseReceived(information[0],information[1]);
+	pthread_mutex_unlock(&receivedMutex);
+}
+
+void* pingThread(void){	
+	while(!quit)
+	{
+		pthread_mutex_lock(&pingMutex);
+		connection* iterator = ContactList.first;
+		while(iterator!=NULL){
+			if(iterator->counter==0)
+				iterator->online=0;
+			else{
+				struct sockaddr_in si_other;
+				int s, i, slen=sizeof(si_other);
+				struct hostent *host;
+				host=gethostbyname(iterator->address);
+				if((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
+					perror("Erro de socket");
+					exit(-1);		
+				}
+				memset((char*) &si_other, 0, sizeof(si_other));
+				si_other.sin_family=AF_INET;
+				si_other.sin_port=htons(61999);
+				si_other.sin_addr = *((struct in_addr *)host->h_addr);
+				if(sendto(s,":ok", 3, 0, (struct sockaddr *) &si_other, slen)==-1)
+				{
+					perror("Erro no envio");
+					exit(1);		
+				}
+				close(s);			
+				iterator->counter=iterator->counter-1;
+			}
+			iterator=iterator->next;
+	
+		}
+		pthread_mutex_unlock(&pingMutex);
+		sleep(3);
+	}
 }
 
 void* receiverThread(void){
@@ -304,11 +344,12 @@ void addAddress(char* address){
 }
 
 void addContact(char* address, char* username){
+	pthread_mutex_lock(&pingMutex);
 	connection* iterator = ContactList.first;
-
 	connection* newConnection = malloc(sizeof(connection));
 	strcpy(newConnection->address,address);
 	strcpy(newConnection->username,username);
+	newConnection->online=1;
 	newConnection->next = NULL;
 
 	if(iterator == NULL) ContactList.first = newConnection;
@@ -318,10 +359,11 @@ void addContact(char* address, char* username){
 	}
 
 	ContactList.size = ContactList.size + 1;
-
+	pthread_mutex_unlock(&pingMutex);
 }
 
 void removeContact(char* username){
+	pthread_mutex_lock(&pingMutex);
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
@@ -347,9 +389,27 @@ void removeContact(char* username){
 			}
 		}
 	}
+	pthread_mutex_unlock(&pingMutex);
+}
+
+connection* searchContact(char* address){
+	connection* iterator = ContactList.first;
+	if(iterator == NULL) return;
+	else if(strcmp(iterator->address,address) == 0) {
+		return iterator;
+	}
+	else {
+		while((iterator->next != NULL)) {
+			if(strcmp(iterator->next->address,address) == 0)
+				return iterator->next;
+			iterator=iterator->next;
+		}
+	}
+	return NULL;
 }
 
 void removeContactRemote(char* address){
+	pthread_mutex_lock(&pingMutex);
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
@@ -371,7 +431,7 @@ void removeContactRemote(char* address){
 			}
 		}
 	}
-
+	pthread_mutex_unlock(&pingMutex);
 }
 
 void parseReceived(char* address, char* message){
@@ -396,6 +456,11 @@ void parseReceived(char* address, char* message){
 			logMsg("Removed contact ");
 			logMsg(address);
 			removeContactRemote(address);
+		}
+		else if(strstr(ParseCode,":o")){
+			connection* user = searchContact(address); 
+			user->online=1;
+			user->counter=3;
 		}
 	}
 
@@ -580,7 +645,10 @@ void printContactList(void){
 	connection* iterator = ContactList.first;
 
 	while(iterator != NULL){
-		printf("\nUsername: %s Address: %s Online: Sim",iterator->username,iterator->address); 
+		if(iterator->online)
+			printf("\nUsername: %s Address: %s Online: Sim",iterator->username,iterator->address); 
+		else		
+			printf("\nUsername: %s Address: %s Online: Sim",iterator->username,iterator->address); 
 		iterator = iterator->next;
 	}
 
@@ -709,6 +777,10 @@ void init(void){
 		printf("Error creating Mutex.\n");
 		exit(0);
 	}
+	if(pthread_mutex_init(&pingMutex,NULL) != 0){
+		printf("Error creating Mutex.\n");
+		exit(0);
+	}
 }
 
 
@@ -717,12 +789,14 @@ void end(void){
 	logMsg("End Of Execution");
 	free(thisUsername);
 	pthread_mutex_destroy(&receivedMutex);
+	pthread_mutex_destroy(&pingMutex);
 	exit(0);
 }
 void main(void){
 
 	pthread_t ReceiverThread;
 	pthread_t MessengerThread;
+	pthread_t PingThread;
 
 	init();
 
@@ -734,6 +808,11 @@ void main(void){
 	//loadContacts();
 
 	if (pthread_create(&MessengerThread,0,(void*) messengerThread,(void*) 0) != 0) { 
+		printf("Error creating multithread.\n");
+		exit(0);
+	}
+
+	if (pthread_create(&PingThread,0,(void*) pingThread,(void*) 0) != 0) { 
 		printf("Error creating multithread.\n");
 		exit(0);
 	}
