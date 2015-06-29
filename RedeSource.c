@@ -331,15 +331,15 @@ void* messengerThread(void){
 
 			case 2: //"Rem":
 			//printf("%s",buffer);
-			logMsg(buffer);
+			//logMsg(buffer);
 			if(activeContact != NULL && strcmp(activeContact->username,buffer) == 0) {
 				if(activeContact->next != NULL) activeContact = activeContact->next;
 				else if (strcmp(activeContact->address,ContactList.first->address) == 0) activeContact = NULL;
 				else activeContact = ContactList.first;
 				}
-			logMsg(buffer);
+			//logMsg(buffer);
 			removeContact(buffer);
-			logMsg(buffer);
+			//logMsg(buffer);
 			break;
 
 			case -1: //"Msg":
@@ -463,17 +463,18 @@ void sendMessage(char* address, char* message, int control){
 				printf("#\n##################################################################");
 				if(isEmpty()) justadd=1;
 					
-			}	
-			else{
-				//printf("##################################################################\n#\n#");
-				//printf(" Mandando mensagem para %s\n", address);
-				//printf("#\n##################################################################");
+			}
+			else if(message[0] == ':' && message[1] == 'r'){
+				printf("##################################################################\n#\n#");
+				printf(" Removendo %s\n", address);	
+				printf("#\n##################################################################");
+					
 			}
 		}
 		send(socket_id,message,strlen(message),0);
 		if(message[0]!=':') saveListMsg(0,address,message);
 		close(socket_id);
-		if(!control && message[0] == ':' && message[1] == 'a') sleep(3);
+		if(!control && (message[0] == ':' && message[1] == 'a' || message[0] == ':' && message[1] == 'r')) sleep(3);
 		//sleep(3);
 	}
 	pthread_mutex_unlock(&sendMutex);
@@ -559,7 +560,7 @@ void removeContact(char* username){
 	else if(strcmp(iterator->username,username) == 0) {
 		
 		ContactList.first = iterator->next;
-		sendMessage(iterator->address,":r",0);
+		sendMessage(iterator->address,":r",1);
 		free(iterator);
 		ContactList.size = ContactList.size - 1;
 		return;
@@ -571,7 +572,7 @@ void removeContact(char* username){
 			//printf("%s %s",iterator2->username,username);
 			if((strcmp(iterator2->username,username) == 0)){
 				iterator->next = iterator2->next;
-				sendMessage(iterator2->address,":r",0);
+				sendMessage(iterator2->address,":r",1);
 				free(iterator2);
 				ContactList.size = ContactList.size - 1;
 			}
@@ -734,9 +735,9 @@ int parseMessage(char* message){
 				returnvalue = 2;
 				//printf("%s %d",message,strcmp(message,"username")); sleep(2);
 			}
-			char buffer[50];
-			sprintf(buffer,"%d",returnvalue);
-			logMsg(buffer);
+			//char buffer[50];
+			//sprintf(buffer,"%d",returnvalue);
+			//logMsg(buffer);
 		}
 
 		else if(strstr(ParseCode,":q")) returnvalue = 3;
