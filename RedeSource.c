@@ -639,6 +639,13 @@ void removeContactRemote(char* address){
 		while((iterator->next != NULL)) {
 			iterator2 = iterator->next;
 			if((strcmp(iterator2->address,address) == 0)){
+				logMsg("start\naddress: ");
+				logMsg(address);
+				logMsg("iterator->address: ");
+				logMsg(iterator->address);
+				logMsg("globalActive: ");
+				logMsg(globalActive);
+				logMsg("end");
 				if(strcmp(iterator->address,globalActive)==0) removedTab=1;
 				iterator->next = iterator2->next;
 				free(iterator2);
