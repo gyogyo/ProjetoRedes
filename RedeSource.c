@@ -87,7 +87,7 @@ void* messageReceiverThread(void){ //Thread para deixar paralelo o tratamento de
 void* pingThread(void){	
 	while(!quit)
 	{
-		pthread_mutex_lock(&pingMutex);
+		pthread_mutex_lock(&pingMutex); // impede que acessem a lista enquanto remove ou adiciona um contato
 		connection* iterator = ContactList.first;
 		//logMsg("something1");
 		while(iterator!=NULL){
@@ -107,15 +107,15 @@ void* pingThread(void){
 			si_other.sin_family=AF_INET;
 			si_other.sin_port=htons(57123);
 			si_other.sin_addr = *((struct in_addr *)host->h_addr);
-			if(sendto(s,":ok", 3, 0, (struct sockaddr *) &si_other, slen)==-1)
+			if(sendto(s,":ok", 3, 0, (struct sockaddr *) &si_other, slen)==-1) // envia msg UDP de controle, ela confirma "estou online"
 			{
 				logMsg("Erro no envio UDP");
 			}
 			//logMsg("enviar\n");
 			close(s);	
 			if(iterator->counter!=0)		
-				iterator->counter=iterator->counter-1;
-			iterator=iterator->next;
+				iterator->counter=iterator->counter-1; // counter eh utilizado para contar o tempo de timeout
+			iterator=iterator->next; // ate que um usuario esteja offline, toda vez que envia um pacote UDP diminui em 1
 	
 		}
 		pthread_mutex_unlock(&pingMutex);
@@ -209,7 +209,7 @@ void* pingReceiverThread(void){
 	memset((char *) &address, 0, sizeof(address));
 
 	address.sin_family = AF_INET;
-	address.sin_port = htons(57123);
+	address.sin_port = htons(57123); // fica em escuta nessa porta ate o programa terminar
 	address.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if(bind(socket_id, (struct sockaddr *) &address, sizeof(address))==-1){
@@ -220,13 +220,12 @@ void* pingReceiverThread(void){
 	//logMsg("bindiu");
 	while(!quit){
 		if(recvfrom(socket_id, message, 1024, 0, (struct sockaddr *) &incoming_address, &address_size)==-1){
-			logMsg("Erro de recepcao");
-			exit(0);		
+			logMsg("Erro de recepcao");		
 		}
 		//logMsg("recebeusmgthng");
 		bytes_received=strlen(message);//(connection_id,message,1024,0);
       		message[bytes_received] = '\0';
-		parseReceived(inet_ntoa(incoming_address.sin_addr),message);
+		parseReceived(inet_ntoa(incoming_address.sin_addr),message); //rotina de tratamento da mensagem
 	}
 
 }
@@ -549,7 +548,7 @@ void addContact(char* address, char* username){
 void addContactRemote(char* address, char* username){ //Mesma coisa que addContact, porém...
 	pthread_mutex_lock(&pingMutex);
 	connection* iterator = searchContact(address);
-	if(iterator==NULL){
+	if(iterator==NULL){ // usuario n existente
 
 		iterator = ContactList.first;
 		connection* newConnection = malloc(sizeof(connection));
@@ -566,7 +565,7 @@ void addContactRemote(char* address, char* username){ //Mesma coisa que addConta
 
 		ContactList.size = ContactList.size + 1;
 	}
-	else
+	else // usuario ja existente
 	{
 		iterator->online=1;
 		iterator->counter=3;
@@ -685,7 +684,7 @@ void setGlobalActive(char* address){
 	globalActive = address;
 }
 
-int isEmpty(){
+int isEmpty(){ // apenas para controle, se a lista esta vazia ou nao
 	connection* iterator = ContactList.first;
 	if(iterator == NULL) return 1;
 	else return 0;
@@ -918,7 +917,7 @@ void groupMessage(char* buffer){ //Função de mensagem em grupo
 	return;
 }
 
-void printContactList(void){
+void printContactList(void){ // imprime lista de contatos
 	setvbuf(stdout, NULL, _IONBF,0);
 	printf("\33[H\33[2J");
 	printf("##################################################################\n#\n#");
@@ -926,8 +925,8 @@ void printContactList(void){
 
 	connection* iterator = ContactList.first;
 
-	while(iterator != NULL){
-		if(iterator->online)
+	while(iterator != NULL){ // enquanto tem elementos na fila
+		if(iterator->online) // se esta online
 			printf("\n#\n# Username: %s\n# Address:  %s\n# Online:   Sim",iterator->username,iterator->address); 
 		else		
 			printf("\n#\n# Username: %s\n# Address:  %s\n# Online:   Nao",iterator->username,iterator->address); 
@@ -938,7 +937,7 @@ void printContactList(void){
 	getc(stdin);
 }
 
-																																																																																																																																																																																																																																																																																																																								void saveContacts(void){ //Ideia antiga, de salvar contatos em um .txt externo
+void saveContacts(void){ //Ideia antiga, de salvar contatos em um .txt externo
 	FILE* SaveFile = fopen("ContactList.txt","w");
 	connection* it = ContactList.first;
 	//char buffer[512];
@@ -955,7 +954,7 @@ void printContactList(void){
 	}
 }
 
-void loadContacts(void){
+void loadContacts(void){ //idem
 	FILE* LoadFile = fopen("ContactList.txt","r");
 	char buffer[512];
 	if(LoadFile != NULL&&ftell(LoadFile)){
@@ -967,14 +966,14 @@ void loadContacts(void){
 	if(!ftell(LoadFile)) fclose(LoadFile);
 }
 
-void logMsg(char* Content){ //Salvar mensagem no log
+void logMsg(char* Content){ //Salvar mensagem no log, para analise de erros e depuracao
 	FILE* LogFile = fopen("log.txt","a");
 	fputs(Content,LogFile);
 	fputc('\n',LogFile);
 	fclose(LogFile);
 }
 
-void saveListMsg(int incoming, char* address, char* message){
+void saveListMsg(int incoming, char* address, char* message){ // salva o log de conversa
 	//printf(" salvando ");
 	conversation* iterator = MessageList.first;
 	conversation* newConversation= malloc(sizeof(conversation));
@@ -982,11 +981,11 @@ void saveListMsg(int incoming, char* address, char* message){
 	newConversation->next=NULL;
 	strcpy(newConversation->address,address);
 	strcpy(newConversation->message,message);	
-	if(iterator == NULL){
+	if(iterator == NULL){ // lista vazia
 		//printf(" eranulo ");
 		MessageList.first = newConversation;
 	}
-	else{
+	else{ // ha elementos na lista
 		//printf(" neranulo ");
 		while(iterator->next!=NULL)
 			iterator=iterator->next;
@@ -995,27 +994,27 @@ void saveListMsg(int incoming, char* address, char* message){
 	//printf(" terminei salvar "); sleep(3);
 }
 
-void printListMsg(char* address){
+void printListMsg(char* address){ // imprime a conversa na tela
 	conversation* iterator = MessageList.first;
 	connection* user = searchContact(address);
-	if(iterator == NULL || address == NULL){
+	if(iterator == NULL || address == NULL){ // lista vazia ou nao ha contatos
 		printf("\n#");
 		return;
 	}
 	else{
 		printf("\n#\n");
-		if(strcmp(iterator->address,address)==0)
+		if(strcmp(iterator->address,address)==0) // primeiro elemento da lista
 		{
 			//printf("1st %d ", iterator->incoming);
-			if(!iterator->incoming) printf("#\n# %s: %s", thisUsername,iterator->message);
+			if(!iterator->incoming) printf("#\n# %s: %s", thisUsername,iterator->message); // incoming indica se a mensagem foi enviada ou recebida
 			else if(iterator->incoming) printf("#\n# %s: %s", user->username, iterator->message);
 		}
-		while(iterator->next!=NULL)
+		while(iterator->next!=NULL) // demais elementos
 		{
 			iterator=iterator->next;
 			if(strcmp(iterator->address,address)==0)
 			{
-				if(!iterator->incoming) printf("#\n# %s: %s", thisUsername, iterator->message);
+				if(!iterator->incoming) printf("#\n# %s: %s", thisUsername, iterator->message); 
 				else if(iterator->incoming) printf("#\n# %s: %s", user->username, iterator->message);
 			}
 		}
