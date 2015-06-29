@@ -331,13 +331,15 @@ void* messengerThread(void){
 
 			case 2: //"Rem":
 			//printf("%s",buffer);
+			msgLog(buffer);
 			if(activeContact != NULL && strcmp(activeContact->username,buffer) == 0) {
 				if(activeContact->next != NULL) activeContact = activeContact->next;
 				else if (strcmp(activeContact->address,ContactList.first->address) == 0) activeContact = NULL;
 				else activeContact = ContactList.first;
 				}
+			msgLog(buffer);
 			removeContact(buffer);
-			
+			msgLog(buffer);
 			break;
 
 			case -1: //"Msg":
@@ -732,6 +734,7 @@ int parseMessage(char* message){
 				returnvalue = 2;
 				//printf("%s %d",message,strcmp(message,"username")); sleep(2);
 			}
+			logMsg(returnvalue);
 		}
 
 		else if(strstr(ParseCode,":q")) returnvalue = 3;
