@@ -810,6 +810,7 @@ void groupMessage(char* buffer){
 	if(!setupFlag) {
 
 		strcpy(buffer,identifier2);
+		pthread_mutex_lock(&pingMutex);
 		connection* iterator = ContactList.first;
 
 		if(iterator != NULL)
@@ -831,11 +832,10 @@ void groupMessage(char* buffer){
 						sleep(1);
 					}
 			}
+		pthread_mutex_unlock(&pingMutex);
 		
 	}
-
 	return;
-
 }
 
 void printContactList(void){
