@@ -40,7 +40,7 @@ char* thisUsername;
 char quit, justadd, removedTab;
 pthread_mutex_t receivedMutex, pingMutex, sendMutex;
 char receivedInfo[2][1024];
-connection* globalActive;
+char* globalActive;
 
 void sendMessage(char* address, char* message, int control);
 void addAddress(char* address, int control);
@@ -51,7 +51,7 @@ void removeContactRemote(char* address);
 connection* searchContact(char* address);
 void groupMessage(char*);
 int isEmpty();
-void setGlobalActive(connection* address);
+void setGlobalActive(char* address);
 void printContactList(void);
 void saveContacts(void);
 void loadContacts(void);
@@ -261,7 +261,7 @@ void* messengerThread(void){
 		}
 		//printf("here0");
 		//fflush(stdin);
-		setGlobalActive(activeContact);
+		setGlobalActive(activeContact->address);
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
 		messagetype = parseMessage(buffer);
@@ -594,7 +594,7 @@ connection* searchContact(char* address){
 	return NULL;
 }
 
-void setGlobalActive(connection* address){
+void setGlobalActive(char* address){
 	globalActive = address;
 }
 
@@ -611,7 +611,7 @@ void removeContactRemote(char* address){
 
 	if(iterator == NULL) return;
 	else if(strcmp(iterator->address,address) == 0) {
-		if(strcmp(iterator->address,globalActive->address)==0) removedTab=1;
+		if(strcmp(iterator->address,globalActive)==0) removedTab=1;
 		ContactList.first = iterator->next;
 		free(iterator);
 		ContactList.size = ContactList.size - 1;
@@ -621,7 +621,7 @@ void removeContactRemote(char* address){
 		while((iterator->next != NULL)) {
 			iterator2 = iterator->next;
 			if((strcmp(iterator2->address,address) == 0)){
-				if(strcmp(iterator->address,globalActive->address)==0) removedTab=1;
+				if(strcmp(iterator->address,globalActive)==0) removedTab=1;
 				iterator->next = iterator2->next;
 				free(iterator2);
 				ContactList.size = ContactList.size - 1;
