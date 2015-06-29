@@ -10,7 +10,7 @@
 #include <string.h>
 #include <unistd.h> // Define constantes POSIX
 
-typedef struct connection_node{
+typedef struct connection_node{ //Struct de conexão
 	char address[512];
 	char username[64];
 	char online;
@@ -18,7 +18,7 @@ typedef struct connection_node{
 	struct connection_node* next;
 } connection;
 
-typedef struct {
+typedef struct { //Struct lista
 	int size;
 	connection* first;
 } connection_list;
@@ -269,7 +269,7 @@ void* messengerThread(void){
 			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
-			printf(" Usuario deletado!\n#\n", activeContact->username);
+			printf(" Usuario deletado!\n#\n");
 			printf("##################################################################");
 			sleep(1);
 			removedTab=0;
