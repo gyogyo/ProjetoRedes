@@ -448,7 +448,7 @@ void sendMessage(char* address, char* message, int control){
 	bzero(&(server_address.sin_zero),8);
 	
 	if (connect(socket_id,(struct sockaddr *)&server_address,sizeof(struct sockaddr)) == -1){
-		Msg("Erro de conexao");
+		logMsg("Erro de conexao");
 		printf("\33[H\33[2J");
 		printf("Erro: %s\n", strerror(errno));
 		close(socket_id);
