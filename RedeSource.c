@@ -2,7 +2,7 @@
 Trabalho de Redes - Messenger simples com uso direto e não abstraído de sockets.
 Feito por:
 Lucas Hilário Favaro Leal - 8503944
-Gyordano Gadoni Reis - 85513algumacoisa
+Gyordano Gadoni Reis - 8551347
 */
 
 #include <sys/types.h>   // Definicao de tipos
