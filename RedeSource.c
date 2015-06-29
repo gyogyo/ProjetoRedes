@@ -265,7 +265,7 @@ void* messengerThread(void){
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
 		messagetype = parseMessage(buffer);
-		if(removedTab){
+		/*if(removedTab){
 			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
@@ -275,7 +275,7 @@ void* messengerThread(void){
 			removedTab=0;
 			messagetype=7;
 			activeContact = ContactList.first;
-		}	
+		}*/	
 		switch(messagetype){
 
 			case 4: //"Tab":
