@@ -564,11 +564,19 @@ void removeContact(char* username){
 	if(iterator == NULL) return; //Se lista vazia
 
 	else if(strcmp(iterator->username,username) == 0) { //Se remover primeiro da lista
-		
-		ContactList.first = iterator->next;
+
+		if (ContactList.size == 1){
+			ContactList.first = NULL;
+			ContactList.size = 0;
+		}
+
+		else{
+			ContactList.first = iterator->next;
+			ContactList.size = ContactList.size - 1;
+		}
+
 		sendMessage(iterator->address,":r",0);
 		free(iterator);
-		ContactList.size = ContactList.size - 1;
 		return;
 	}
 
@@ -625,12 +633,20 @@ void removeContactRemote(char* address){
 	if(iterator == NULL) return; //Se lista vazia
 
 	else if(strcmp(iterator->address,address) == 0) { //Se primeiro da lista
+		
+		if (ContactList.size == 1){
+			ContactList.first = NULL;
+			ContactList.size = 0;
+		}
+
+		else{
+			ContactList.first = iterator->next;
+			ContactList.size = ContactList.size - 1;
+		}
 
 		if(strcmp(iterator->address,globalActive)==0) removedTab=1;
 
-		ContactList.first = iterator->next;
 		free(iterator);
-		ContactList.size = ContactList.size - 1;
 
 		return;
 	}
