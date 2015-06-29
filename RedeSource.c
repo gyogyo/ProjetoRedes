@@ -265,9 +265,9 @@ void* messengerThread(void){
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
 		messagetype = parseMessage(buffer);
-		logMsg(removedtab);
+		logMsg(removedTab);
 		if(removedTab){
-			logMsg("erapraserdeletado")
+			logMsg("erapraserdeletado");
 			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
