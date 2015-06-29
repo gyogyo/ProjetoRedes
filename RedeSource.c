@@ -270,17 +270,30 @@ void* messengerThread(void){
 			break;
 
 			case 5: //"Ta2":
-			if(activeContact != NULL && activeContact->next != NULL){
+			if(activeContact != NULL){
 				connection* Marker = activeContact;
-				do {
+				activeContact = ContactList.first;
+				while(activeContact != NULL){
+					if(strcmp(activeContact->username,buffer) == 0) break;
 					activeContact = activeContact->next;
-				} while(strcmp(activeContact->username,buffer) != 0 && activeContact != Marker);
+				}
+
+				if(activeContact == NULL){
+					activeContact = Marker;
+					setvbuf(stdout, NULL, _IONBF,0);
+					printf("\33[H\33[2J");
+					printf("##################################################################\n#\n#");
+					printf(" O contato especificado nao existe!\n#\n");
+					printf("##################################################################");
+					sleep(1);
+				}
+
 			}
 			else{
 				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
 				printf("##################################################################\n#\n#");
-				printf(" Nao ha contatos adicionados ou o contato especificado nao existe!\n#\n");
+				printf(" Nao ha contatos adicionados!\n#\n");
 				printf("##################################################################");
 				sleep(1);
 			}
@@ -365,7 +378,7 @@ void* messengerThread(void){
 			break;
 
 			case 6: //"Grp":
-			printf("\n%s\n",buffer);
+			//printf("\n%s\n",buffer);
 			groupMessage(buffer);
 			break;
 
@@ -539,7 +552,7 @@ void removeContact(char* username){
 		//printf("jere");
 		while((iterator->next != NULL)) {
 			iterator2 = iterator->next; //printf("her");
-			printf("%s %s",iterator2->username,username);
+			//printf("%s %s",iterator2->username,username);
 			if((strcmp(iterator2->username,username) == 0)){
 				iterator->next = iterator2->next;
 				sendMessage(iterator2->address,":r",0);
@@ -709,17 +722,13 @@ int parseMessage(char* message){
 			//printf("here");	
 			//__fpurge(stdout);
 			char* Separator2 = strrchr(message,' ');
-			if( Separator2 != NULL) {
-				Separator = strrchr(message,'\0');
-				if (Separator != Separator2)
-				{
-					char aux[1024];
-					memmove(aux,(Separator2+1),(Separator-Separator2-2));
-					memmove(message,aux,1024);
-					//printf("%s", message);
-					message[(Separator - Separator2 - 2)] = '\0';
-					returnvalue = 5;
-				}
+			if(Separator2 != NULL) {
+				Separator = strrchr(message,'\n');
+				*Separator = '\0';
+				char aux[1024];
+				strcpy(aux,Separator2+1);
+				strcpy(message,aux);
+				returnvalue = 5;
 			}
 		}
 
