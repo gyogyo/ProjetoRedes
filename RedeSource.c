@@ -734,7 +734,9 @@ int parseMessage(char* message){
 				returnvalue = 2;
 				//printf("%s %d",message,strcmp(message,"username")); sleep(2);
 			}
-			logMsg(returnvalue);
+			char buffer[50];
+			sprintf(buffer,"%d",returnvalue);
+			logMsg(buffer);
 		}
 
 		else if(strstr(ParseCode,":q")) returnvalue = 3;
