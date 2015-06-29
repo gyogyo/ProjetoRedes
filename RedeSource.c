@@ -262,7 +262,7 @@ void* messengerThread(void){
 		}
 		//printf("here0");
 		//fflush(stdin);
-		setGlobalActive(activeContact->address);
+		if(activeContact!=NULL) setGlobalActive(activeContact->address);
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
 		messagetype = parseMessage(buffer);
@@ -561,7 +561,7 @@ void removeContact(char* username){
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
-	if(iterator == NULL) return; //Se lista vazia
+	if(iterator == NULL) {}//Se lista vazia
 
 	else if(strcmp(iterator->username,username) == 0) { //Se remover primeiro da lista
 
@@ -577,7 +577,6 @@ void removeContact(char* username){
 
 		sendMessage(iterator->address,":r",0);
 		free(iterator);
-		return;
 	}
 
 	else { //Iterar lista
@@ -596,6 +595,7 @@ void removeContact(char* username){
 	}
 
 	pthread_mutex_unlock(&pingMutex);
+	return;
 }
 
 connection* searchContact(char* address){
@@ -630,7 +630,7 @@ void removeContactRemote(char* address){
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
-	if(iterator == NULL) return; //Se lista vazia
+	if(iterator == NULL) {} //Se lista vazia
 
 	else if(strcmp(iterator->address,address) == 0) { //Se primeiro da lista
 		
@@ -647,8 +647,6 @@ void removeContactRemote(char* address){
 		if(strcmp(iterator->address,globalActive)==0) removedTab=1;
 
 		free(iterator);
-
-		return;
 	}
 
 	else { //Iterar lista
@@ -666,6 +664,7 @@ void removeContactRemote(char* address){
 		}
 	}
 	pthread_mutex_unlock(&pingMutex);
+	return;
 }
 
 void parseReceived(char* address, char* message){
