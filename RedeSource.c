@@ -257,7 +257,7 @@ void* messengerThread(void){
 		else{
 			//printf("\33[H\33[2J");
 			printf("##################################################################\n#\n");
-			printf("# Nao ha c!ontatos adicionados\n# Adicione um contato utilizando :a IP\n# Comando: ");
+			printf("# Nao ha contatos adicionados\n# Adicione um contato utilizando :a IP\n# Comando: ");
 		}
 		//printf("here0");
 		//fflush(stdin);
@@ -265,7 +265,11 @@ void* messengerThread(void){
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
 		messagetype = parseMessage(buffer);
+		char buf[50];
+		sprintf(buf,"removed tab: %d",removedtab);
+		logMsg(buf);
 		if(removedTab){
+			logMsg("erapraserdeletado")
 			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
@@ -307,7 +311,7 @@ void* messengerThread(void){
 				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
 				printf("##################################################################\n#\n#");
-				printf(" Nao ha contatos a!dicionados!\n#\n");
+				printf(" Nao ha contatos adicionados!\n#\n");
 				printf("##################################################################");
 				sleep(1);
 			}
@@ -361,7 +365,7 @@ void* messengerThread(void){
 				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
 				printf("##################################################################\n#\n#");
-				printf(" !Nao ha contatos adicionados!\n#\n");
+				printf(" Nao ha contatos adicionados!\n#\n");
 				printf("##################################################################");
 				sleep(1);
 			}
@@ -386,7 +390,7 @@ void* messengerThread(void){
 				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
 				printf("##################################################################\n#\n#");
-				printf(" Nao ha contatos! adicionados!\n#\n");
+				printf(" Nao ha contatos adicionados!\n#\n");
 				printf("##################################################################");
 				sleep(1);
 			}
@@ -553,13 +557,13 @@ void addContactRemote(char* address, char* username){
 
 void removeContact(char* username){
 	pthread_mutex_lock(&pingMutex);
-	logMsg("entrou");
+	//logMsg("entrou");
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
 	if(iterator == NULL) return;
 	else if(strcmp(iterator->username,username) == 0) {
-		logMsg("removeu");
+		//logMsg("removeu");
 		ContactList.first = iterator->next;
 		sendMessage(iterator->address,":r",1);
 		free(iterator);
@@ -576,11 +580,11 @@ void removeContact(char* username){
 				sendMessage(iterator2->address,":r",1);
 				free(iterator2);
 				ContactList.size = ContactList.size - 1;
-				logMsg("removeu");
+				//logMsg("removeu");
 			}
 		}
 	}
-	logMsg("saiu");
+	//logMsg("saiu");
 	pthread_mutex_unlock(&pingMutex);
 }
 
