@@ -37,7 +37,8 @@ typedef struct {
 connection_list ContactList;
 conversation_list MessageList;
 char* thisUsername;
-char quit, justadd, removedTab;
+char quit, justadd;
+int removedTab;
 pthread_mutex_t receivedMutex, pingMutex, sendMutex;
 char receivedInfo[2][1024];
 char* globalActive;
@@ -265,9 +266,9 @@ void* messengerThread(void){
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
 		messagetype = parseMessage(buffer);
-		char *p = malloc(2*sizeof(char));
-		p[0]=removedTab; p[1]='\0';
-		logMsg(p);
+		char buf[50];
+		sprintf(buf,"removed tab %d", removedTab);
+		logMsg(buf);
 		if(removedTab){
 			logMsg("erapraserdeletado");
 			setvbuf(stdout, NULL, _IONBF,0);
