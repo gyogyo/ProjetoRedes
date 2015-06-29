@@ -257,7 +257,7 @@ void* messengerThread(void){
 		else{
 			//printf("\33[H\33[2J");
 			printf("##################################################################\n#\n");
-			printf("# Nao ha contatos adicionados\n# Adicione um contato utilizando :a IP\n# Comando: ");
+			printf("# Nao ha c!ontatos adicionados\n# Adicione um contato utilizando :a IP\n# Comando: ");
 		}
 		//printf("here0");
 		//fflush(stdin);
@@ -307,7 +307,7 @@ void* messengerThread(void){
 				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
 				printf("##################################################################\n#\n#");
-				printf(" Nao ha contatos adicionados!\n#\n");
+				printf(" Nao ha contatos a!dicionados!\n#\n");
 				printf("##################################################################");
 				sleep(1);
 			}
@@ -359,7 +359,7 @@ void* messengerThread(void){
 				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
 				printf("##################################################################\n#\n#");
-				printf(" Nao ha contatos adicionados!\n#\n");
+				printf(" !Nao ha contatos adicionados!\n#\n");
 				printf("##################################################################");
 				sleep(1);
 			}
@@ -384,7 +384,7 @@ void* messengerThread(void){
 				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
 				printf("##################################################################\n#\n#");
-				printf(" Nao ha contatos adicionados!\n#\n");
+				printf(" Nao ha contatos! adicionados!\n#\n");
 				printf("##################################################################");
 				sleep(1);
 			}
