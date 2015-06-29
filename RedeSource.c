@@ -331,15 +331,15 @@ void* messengerThread(void){
 
 			case 2: //"Rem":
 			//printf("%s",buffer);
-			msgLog(buffer);
+			logMsg(buffer);
 			if(activeContact != NULL && strcmp(activeContact->username,buffer) == 0) {
 				if(activeContact->next != NULL) activeContact = activeContact->next;
 				else if (strcmp(activeContact->address,ContactList.first->address) == 0) activeContact = NULL;
 				else activeContact = ContactList.first;
 				}
-			msgLog(buffer);
+			logMsg(buffer);
 			removeContact(buffer);
-			msgLog(buffer);
+			logMsg(buffer);
 			break;
 
 			case -1: //"Msg":
@@ -448,7 +448,7 @@ void sendMessage(char* address, char* message, int control){
 	bzero(&(server_address.sin_zero),8);
 	
 	if (connect(socket_id,(struct sockaddr *)&server_address,sizeof(struct sockaddr)) == -1){
-		logMsg("Erro de conexao");
+		Msg("Erro de conexao");
 		printf("\33[H\33[2J");
 		printf("Erro: %s\n", strerror(errno));
 		close(socket_id);
