@@ -558,34 +558,35 @@ void addContactRemote(char* address, char* username){
 
 void removeContact(char* username){
 	pthread_mutex_lock(&pingMutex);
-	//logMsg("entrou");
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
-	if(iterator == NULL) return;
-	else if(strcmp(iterator->username,username) == 0) {
-		//logMsg("removeu");
+	if(iterator == NULL) return; //Se lista vazia
+
+	else if(strcmp(iterator->username,username) == 0) { //Se remover primeiro da lista
+		
 		ContactList.first = iterator->next;
-		sendMessage(iterator->address,":r",1);
+		sendMessage(iterator->address,":r",0);
 		free(iterator);
 		ContactList.size = ContactList.size - 1;
 		return;
 	}
-	else {
-		//printf("jere");
-		while((iterator->next != NULL)) {
-			iterator2 = iterator->next; //printf("her");
-			//printf("%s %s",iterator2->username,username);
-			if((strcmp(iterator2->username,username) == 0)){
+
+	else { //Iterar lista
+		iterator2 = iterator->next;
+		while(iterator2 != NULL) {
+			if(strcmp(iterator2->username,username) == 0){ //Se esse foi o escolhido
 				iterator->next = iterator2->next;
-				sendMessage(iterator2->address,":r",1);
+				sendMessage(iterator2->address,":r",0);
 				free(iterator2);
 				ContactList.size = ContactList.size - 1;
-				//logMsg("removeu");
+				
 			}
+			iterator = iterator2;
+			iterator2 = iterator->next;
 		}
 	}
-	//logMsg("saiu");
+
 	pthread_mutex_unlock(&pingMutex);
 }
 
@@ -617,40 +618,35 @@ int isEmpty(){
 
 void removeContactRemote(char* address){
 	pthread_mutex_lock(&pingMutex);
+
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
-	if(iterator == NULL) return;
-	else if(strcmp(iterator->address,address) == 0) {
-		logMsg("start\naddress: ");
-		logMsg(address);
-		logMsg("iterator->address: ");
-		logMsg(iterator->address);
-		logMsg("globalActive: ");
-		logMsg(globalActive);
-		logMsg("end");
+	if(iterator == NULL) return; //Se lista vazia
+
+	else if(strcmp(iterator->address,address) == 0) { //Se primeiro da lista
+
 		if(strcmp(iterator->address,globalActive)==0) removedTab=1;
+
 		ContactList.first = iterator->next;
 		free(iterator);
 		ContactList.size = ContactList.size - 1;
+
 		return;
 	}
-	else {
-		while((iterator->next != NULL)) {
-			iterator2 = iterator->next;
-			if((strcmp(iterator2->address,address) == 0)){
-				logMsg("start\naddress: ");
-				logMsg(address);
-				logMsg("iterator->address: ");
-				logMsg(iterator->address);
-				logMsg("globalActive: ");
-				logMsg(globalActive);
-				logMsg("end");
-				if(strcmp(iterator->address,globalActive)==0) removedTab=1;
+
+	else { //Iterar lista
+		iterator2 = iterator->next;
+		while(iterator2 != NULL) {
+			if(strcmp(iterator2->address,address) == 0){ //Se esse foi o escolhido
+				if(strcmp(iterator2->address,globalActive)==0) removedTab=1;
 				iterator->next = iterator2->next;
 				free(iterator2);
 				ContactList.size = ContactList.size - 1;
+			
 			}
+			iterator = iterator2;
+			iterator2 = iterator->next;
 		}
 	}
 	pthread_mutex_unlock(&pingMutex);
