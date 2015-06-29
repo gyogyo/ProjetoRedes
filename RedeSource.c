@@ -817,7 +817,7 @@ void groupMessage(char* buffer){
 			for(i = 0; i < counter; i++){
 				while(iterator != NULL && strcmp(iterator->username,userSelector[i])!=0)
 					iterator = iterator->next;
-				if(iterator != NULL) //Encontrou username na lista de contatos
+				if(iterator != NULL){ //Encontrou username na lista de contatos
 
 					if(iterator->online == 1){	
 						sendMessage(iterator->address,buffer,0);
@@ -831,6 +831,15 @@ void groupMessage(char* buffer){
 						printf("##################################################################");
 						sleep(1);
 					}
+				}
+				else{
+						setvbuf(stdout, NULL, _IONBF,0);
+						printf("\33[H\33[2J");
+						printf("##################################################################\n#\n#");
+						printf(" %s nao existe na lista de contatos!\n#\n", userSelector[i]);
+						printf("##################################################################");
+						sleep(1);
+				}
 			}
 		pthread_mutex_unlock(&pingMutex);
 		
