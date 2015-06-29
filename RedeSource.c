@@ -265,7 +265,9 @@ void* messengerThread(void){
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
 		messagetype = parseMessage(buffer);
-		logMsg(removedTab);
+		char buf[50];
+		sprintf(buf,"removedTab: %d",atoi(removedTab));
+		logMsg(buf);
 		if(removedTab){
 			logMsg("erapraserdeletado");
 			setvbuf(stdout, NULL, _IONBF,0);
