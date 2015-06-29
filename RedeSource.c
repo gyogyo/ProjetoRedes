@@ -553,12 +553,13 @@ void addContactRemote(char* address, char* username){
 
 void removeContact(char* username){
 	pthread_mutex_lock(&pingMutex);
+	logMsg("entrou");
 	connection* iterator = ContactList.first;
 	connection* iterator2;
 
 	if(iterator == NULL) return;
 	else if(strcmp(iterator->username,username) == 0) {
-		
+		logMsg("removeu");
 		ContactList.first = iterator->next;
 		sendMessage(iterator->address,":r",1);
 		free(iterator);
@@ -575,9 +576,11 @@ void removeContact(char* username){
 				sendMessage(iterator2->address,":r",1);
 				free(iterator2);
 				ContactList.size = ContactList.size - 1;
+				logMsg("removeu");
 			}
 		}
 	}
+	logMsg("saiu");
 	pthread_mutex_unlock(&pingMutex);
 }
 
