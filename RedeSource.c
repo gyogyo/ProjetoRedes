@@ -1,3 +1,10 @@
+/*
+Trabalho de Redes - Messenger simples com uso direto e não abstraído de sockets.
+Feito por:
+Lucas Hilário Favaro Leal - 8503944
+Gyordano Gadoni Reis - 85513algumacoisa
+*/
+
 #include <sys/types.h>   // Definicao de tipos
 #include <sys/socket.h>  // Biblioteca de estrutara de sockets
 #include <netinet/in.h>  // Define os padroes de protocolo IP
@@ -23,55 +30,58 @@ typedef struct { //Struct lista
 	connection* first;
 } connection_list;
 
-typedef struct message_list{
+typedef struct message_list{ //Struct log da conversa
 	char incoming;
 	char address[64];
 	char message[1024];
 	struct message_list* next;
 } conversation;
 
-typedef struct {
+typedef struct { //Struct lista da conversa
 	conversation* first;
 } conversation_list;
 
-connection_list ContactList;
-conversation_list MessageList;
-char* thisUsername;
-char quit, justadd;
-int removedTab;
-pthread_mutex_t receivedMutex, pingMutex, sendMutex;
-char receivedInfo[2][1024];
-char* globalActive;
+connection_list ContactList; //Lista de contatos global ao programa
+conversation_list MessageList; //Lista de mensagens global ao programa
+char* thisUsername; //String global do username do cliente
+char quit, justadd; //Variáveis globais de controle diversos
+int removedTab; //Variável global usada para controle de abas removidas
+pthread_mutex_t receivedMutex, pingMutex, sendMutex; //Mutexes globais
+char receivedInfo[2][1024]; //Informações recebidas para uso multithread
+char* globalActive; //String global tendo o ip da janela atual
 
-void sendMessage(char* address, char* message, int control);
-void addAddress(char* address, int control);
-void addContact(char* address, char* username);
-void addContactRemote(char* address, char* username);
-void removeContact(char* username);
-void removeContactRemote(char* address);
-connection* searchContact(char* address);
-void groupMessage(char*);
-int isEmpty();
-void setGlobalActive(char* address);
-void printContactList(void);
-void saveContacts(void);
-void loadContacts(void);
-void logMsg(char* Content);
-void saveListMsg(int incoming, char* address, char* message);
-void printListMsg(char* address);
-void printest(char* address);
-void init(void);
-void end(void);
-void parseReceived(char* address, char* message);
-int parseMessage(char* message);
+void sendMessage(char* address, char* message, int control); //send message to address
+void addAddress(char* address, int control); //add IP address
+void addContact(char* address, char* username); //add a new contact to list
+void addContactRemote(char* address, char* username); //add a new contact to list (Receiver Thread)
+void removeContact(char* username); //remove a contact from list
+void removeContactRemote(char* address); //remove a contact from list (Receiver Thread)
+connection* searchContact(char* address); //returns null if address not found in contacts
+void groupMessage(char*); //sends a group message in the format @1 @2 @3 <Message>
+int isEmpty(); //returns true if ContactList empty
+void setGlobalActive(char* address); //setter for global variable globalActive
+void printContactList(void); //prints the contact list on stdout
+void saveContacts(void); //saves the contacts to an external file (Not Used)
+void loadContacts(void); //loads the contacts from an external file (Not Used)
+void logMsg(char* Content); //saves Content to the log file
+void saveListMsg(int incoming, char* address, char* message); //
+void printListMsg(char* address); //
+void printest(char* address); //print test (Not Used)
+void init(void); //program initializer function
+void end(void); //program ender function
+void parseReceived(char* address, char* message); //parses received messages from the Receiver Thread
+int parseMessage(char* message); //parses user input from stdin
 
 
-void* messageReceiverThread(void){	
+void* messageReceiverThread(void){ //Thread para deixar paralelo o tratamento de mensagens recebidas.
+
 	char information[2][1024];
-	strcpy(information[0],receivedInfo[0]);
+
+	strcpy(information[0],receivedInfo[0]); //Cópia local de variáveis globais.
 	strcpy(information[1],receivedInfo[1]);
 	parseReceived(information[0],information[1]);
-	pthread_mutex_unlock(&receivedMutex);
+	pthread_mutex_unlock(&receivedMutex); //Liberar mutex após uso.
+
 }
 
 void* pingThread(void){	
@@ -113,7 +123,7 @@ void* pingThread(void){
 	}
 }
 
-void* receiverThread(void){
+void* receiverThread(void){ //Thread para o recebimento de mensagens
 
 	int socket_id, true = 1;	struct sockaddr_in address;
 	struct sockaddr_in incoming_address;	int address_size = sizeof(struct sockaddr_in);
@@ -153,7 +163,7 @@ void* receiverThread(void){
 	printf("##################################################################");
 	pthread_t PopupThread; //Popup Thread que o Gyogyo-san queria tanto
 
-	while(!quit){
+	while(!quit){ //Enquanto o programa não sair e já está com o server na escuta
 
 		connection_id = accept(socket_id, (struct sockaddr *)&incoming_address, &address_size);
 
@@ -165,8 +175,8 @@ void* receiverThread(void){
 		bytes_received=recv(connection_id,message,1024,0);
       		message[bytes_received] = '\0';
 		
-		pthread_mutex_lock(&receivedMutex);
-		strcpy(receivedInfo[0],inet_ntoa(incoming_address.sin_addr));
+		pthread_mutex_lock(&receivedMutex); //Travar mutex para impedir um possível erro no tratamento.
+		strcpy(receivedInfo[0],inet_ntoa(incoming_address.sin_addr)); //Salvar em variável global para multithread.
 		strcpy(receivedInfo[1],message);
 
 		if (pthread_create(&PopupThread,0,(void*) messageReceiverThread,(void*) 0) != 0) { 
@@ -175,7 +185,7 @@ void* receiverThread(void){
 		}
 		
 		
-		close(connection_id);
+		close(connection_id); //Fechar o socket aceito
 
 		sleep(1);
 
@@ -221,14 +231,14 @@ void* pingReceiverThread(void){
 
 }
 
-void* messengerThread(void){
+void* messengerThread(void){ //Thread 'principal', cuida das entradas do usuário.
 	connection* activeContact = ContactList.first;
 	char buffer[1024];
 	int messagetype;
 	char** groupmessage;
 	sleep(3);
 	while(!quit){
-		if(justadd&&activeContact == NULL){
+		if(justadd&&activeContact == NULL){ //Se o primeiro contato foi adicionado, dar um tab automático.
 			setvbuf(stdout, NULL, _IONBF, 0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#");
@@ -238,7 +248,8 @@ void* messengerThread(void){
 			justadd=0;
 			activeContact = ContactList.first;
 		}
-		else if(activeContact == NULL){
+
+		else if(activeContact == NULL){ //Se por algum motivo, o contato atual é nulo, uma pausa.
 			setvbuf(stdout, NULL, _IONBF, 0);
 			printf("\33[H\33[2J");
 			printf("##################################################################");
@@ -246,6 +257,7 @@ void* messengerThread(void){
 			getc(stdin);
 			activeContact = ContactList.first;
 		}
+
 		setvbuf(stdout, NULL, _IONBF, 0);
 		printf("\33[H\33[2J");
 		if(activeContact != NULL){
@@ -262,15 +274,14 @@ void* messengerThread(void){
 		}
 		//printf("here0");
 		//fflush(stdin);
-		if(activeContact!=NULL) setGlobalActive(activeContact->address);
+		if(activeContact!=NULL) setGlobalActive(activeContact->address); //Atualizar variável global.
+
 		__fpurge(stdin);
 		fgets(buffer,956,stdin);
-		messagetype = parseMessage(buffer);
-		char buf[50];
-		sprintf(buf,"removed tab %d", removedTab);
-		logMsg(buf);
-		if(removedTab){
-			logMsg("erapraserdeletado");
+
+		messagetype = parseMessage(buffer); //Tratar buffer e ver que tipo de mensagem o usuário entrou.
+
+		if(removedTab){ //Se a aba atual foi deletada pelo outro usuário
 			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
@@ -280,25 +291,26 @@ void* messengerThread(void){
 			removedTab=0;
 			messagetype=7;
 			activeContact = ContactList.first;
-		}	
+		}
+
 		switch(messagetype){
 
 			case 4: //"Tab":
 			if(activeContact != NULL && activeContact->next != NULL) activeContact = activeContact->next;
-			else activeContact = ContactList.first;
+			else activeContact = ContactList.first; //Passar à frente, estilo lista circular.
 			break;
 
-			case 5: //"Ta2":
+			case 5: //"Tab com nome":
 			if(activeContact != NULL){
 				connection* Marker = activeContact;
 				activeContact = ContactList.first;
 				while(activeContact != NULL){
 					if(strcmp(activeContact->username,buffer) == 0) break;
-					activeContact = activeContact->next;
+					activeContact = activeContact->next; //Fazer uma busca pelo nome entrado.
 				}
 
-				if(activeContact == NULL){
-					activeContact = Marker;
+				if(activeContact == NULL){ //Se não encontrou
+					activeContact = Marker; //Voltar para qual estava antes do comando.
 					setvbuf(stdout, NULL, _IONBF,0);
 					printf("\33[H\33[2J");
 					printf("##################################################################\n#\n#");
@@ -308,7 +320,7 @@ void* messengerThread(void){
 				}
 
 			}
-			else{
+			else{ //Se não tiver contatos em sua lista
 				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
 				printf("##################################################################\n#\n#");
@@ -318,7 +330,7 @@ void* messengerThread(void){
 			}
 			break;
 
-			case 3: //"Exi":
+			case 3: //"Exit":
 			setvbuf(stdout, NULL, _IONBF, 0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n");
@@ -326,31 +338,26 @@ void* messengerThread(void){
 			printf("#\n##################################################################");			
 			sleep(1);
 			printf("\33[H\33[2J");
-			quit = 1;
+			quit = 1; //Mandar fechar todas as threads.
 			break;
 
 			case 0: //"Add":
-			//printf("\nImprimindo buffer %s\n", buffer);
 			addAddress(buffer,0);
 			break;
 
 			case 2: //"Rem":
-			//printf("%s",buffer);
-			//logMsg(buffer);
-			if(activeContact != NULL && strcmp(activeContact->username,buffer) == 0) {
-				if(activeContact->next != NULL) activeContact = activeContact->next;
-				else if (strcmp(activeContact->address,ContactList.first->address) == 0) activeContact = NULL;
-				else activeContact = ContactList.first;
+			if(activeContact != NULL && strcmp(activeContact->username,buffer) == 0) { //Se estiver removendo o contato atual
+				if(activeContact->next != NULL) activeContact = activeContact->next; //Atual = Próximo se tiver próximo
+				else if (strcmp(activeContact->address,ContactList.first->address) == 0) activeContact = NULL; //Atual = NULL se este era o último contato
+				else activeContact = ContactList.first; //Atual = início de fila caso contrário.
 				}
-			//logMsg(buffer);
 			removeContact(buffer);
-			//logMsg(buffer);
 			break;
 
 			case -1: //"Msg":
 			if(activeContact != NULL){
 				if(activeContact->online == 1){
-					sendMessage(activeContact->address,buffer,0);	
+					sendMessage(activeContact->address,buffer,0); //Enviar mensagem só se estiver online.
 				}
 				
 				else{
@@ -372,21 +379,21 @@ void* messengerThread(void){
 			}
 			break;
 
-			case 7: //"Frsh":
-			//activeContact = ContactList.first;
+			case 7: //"Fresh":
 			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
 			printf(" Atualizando!\n#\n");
 			printf("##################################################################");
-			//sleep(0.5);
 			break;
 
 			case 8: //"List":
 
-			if(activeContact != NULL){				
+			if(activeContact != NULL){	
+			
 				printContactList();
 			}
+
 			else{
 				setvbuf(stdout, NULL, _IONBF,0);
 				printf("\33[H\33[2J");
@@ -398,12 +405,11 @@ void* messengerThread(void){
 
 			break;
 
-			case 6: //"Grp":
-			//printf("\n%s\n",buffer);
+			case 6: //"Group":
 			groupMessage(buffer);
 			break;
 
-			case 1: //"Hlp":
+			case 1: //"Help":
 			setvbuf(stdout, NULL, _IONBF,0);
 			printf("\33[H\33[2J");
 			printf("##################################################################\n#\n#");
@@ -422,27 +428,24 @@ void* messengerThread(void){
 			getc(stdin);
 
 		}
-		//printf("nmb %d ", messagetype); sleep(2);
 	}
 }
 
-void sendMessage(char* address, char* message, int control){
+void sendMessage(char* address, char* message, int control){ //Função principal de mandar mensagem.
 	pthread_mutex_lock(&sendMutex);
 	int socket_id;
 	struct hostent* host;
 	struct sockaddr_in server_address;
 	int connection_id;
-	//printf("\nImprimindo address %s e message %s\n", address, message);	
-	//printf("%d", strlen(message));
 	int i;
-	/*for(i=0;i<10;i++)
-		printf("[%c]", address[i]);*/
 	int bytes_received;
-	//printf("address %s. Number %d. name %s.", address,(int)strlen(address), message);
 
 	host = gethostbyname(address);
-	if(host == NULL){
+
+	if(host == NULL){ //Se a mensagem foi endereçada à algum endereço inválido
+
 		logMsg("Erro no endereco");
+
 		printf("\33[H\33[2J");
 		printf("##################################################################\n#\n#");
 		printf(" Erro no endereco\n");	
@@ -450,6 +453,7 @@ void sendMessage(char* address, char* message, int control){
 		sleep(3);
 		pthread_mutex_unlock(&sendMutex);
 		return;
+
 	}
 	
 	if ((socket_id = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -464,6 +468,7 @@ void sendMessage(char* address, char* message, int control){
 	
 	if (connect(socket_id,(struct sockaddr *)&server_address,sizeof(struct sockaddr)) == -1){
 		logMsg("Erro de conexao");
+
 		printf("\33[H\33[2J");
 		printf("##################################################################\n#\n#");
 		printf(" Erro: %s\n", strerror(errno));
@@ -471,14 +476,16 @@ void sendMessage(char* address, char* message, int control){
 		close(socket_id);
 		sleep(3);
 	}
+
+//Criado o socket de envio
 	else{
-		if(!control){
+		if(!control){ //Se for uma mensagem de controle
 			printf("\33[H\33[2J");
 			if(message[0] == ':' && message[1] == 'a'){
 				printf("##################################################################\n#\n#");
 				printf(" Adicionando %s\n", address);	
 				printf("#\n##################################################################");
-				if(isEmpty()) justadd=1;
+				if(isEmpty()) justadd=1; //Primeiro adicionado da lista
 					
 			}
 			else if(message[0] == ':' && message[1] == 'r'){
@@ -488,57 +495,62 @@ void sendMessage(char* address, char* message, int control){
 					
 			}
 		}
-		send(socket_id,message,strlen(message),0);
-		if(message[0]!=':') saveListMsg(0,address,message);
-		close(socket_id);
-		if(!control && (message[0] == ':' && message[1] == 'a' || message[0] == ':' && message[1] == 'r')) sleep(3);
-		//sleep(3);
+		send(socket_id,message,strlen(message),0); //Enviar mensagem
+		if(message[0]!=':') saveListMsg(0,address,message); //Salvar no log da conversa se foi uma mensagem de conversa
+		close(socket_id); //Fechar conexão
+		if(!control && (message[0] == ':' && message[1] == 'a' || message[0] == ':' && message[1] == 'r')) sleep(3); //Dar uma pausa
+
 	}
+
 	pthread_mutex_unlock(&sendMutex);
 }
 
 void addAddress(char* address, int control){
-	//printf("here");
 	char addMessage[1024];
 	strcpy(addMessage,":a ");
-	strcat(addMessage,thisUsername);
-	//printf("addMessage %s!", addMessage);
+	strcat(addMessage,thisUsername); //Enviar uma mensagem ":a <Username>" para ser adicionado no destino
 	sendMessage(address,addMessage,control);
 }
 
 void addContact(char* address, char* username){
 	pthread_mutex_lock(&pingMutex);
+
 	connection* iterator = searchContact(address);
-	if(iterator==NULL){
+
+	if(iterator==NULL){ //Se não tiver o endereço nos contatos salvos
 		iterator = ContactList.first;
-		connection* newConnection = malloc(sizeof(connection));
+
+		connection* newConnection = malloc(sizeof(connection)); //Criar um novo nó na lista
 		strcpy(newConnection->address,address);
 		strcpy(newConnection->username,username);
 		newConnection->online=1;
 		newConnection->counter=3;
 		newConnection->next = NULL;
 
-		if(iterator == NULL) ContactList.first = newConnection;
-		else {
+		if(iterator == NULL) ContactList.first = newConnection; //Se não tinha ninguém na lista, adicionar ao começo
+		else { //Senão adicionar no final
 			while(iterator->next != NULL) iterator = iterator->next;
 			iterator->next = newConnection;
 		}
 
 		ContactList.size = ContactList.size + 1;
 	}
-	else
+
+	else //Se já existia essa conexão, atualizar dados
 	{
 		iterator->online=1;
 		iterator->counter=3;
 		strcpy(iterator->username,username);		
-	}		
+	}
+	
 	pthread_mutex_unlock(&pingMutex);
 }
 
-void addContactRemote(char* address, char* username){
+void addContactRemote(char* address, char* username){ //Mesma coisa que addContact, porém...
 	pthread_mutex_lock(&pingMutex);
 	connection* iterator = searchContact(address);
 	if(iterator==NULL){
+
 		iterator = ContactList.first;
 		connection* newConnection = malloc(sizeof(connection));
 		strcpy(newConnection->address,address);
@@ -562,9 +574,8 @@ void addContactRemote(char* address, char* username){
 	}
 	pthread_mutex_unlock(&pingMutex);
 	char addMessage[1024];
-	strcpy(addMessage,":k ");
+	strcpy(addMessage,":k "); //Enviar mensagem de confirmação ao remetente, para adicioná-lo de volta
 	strcat(addMessage,thisUsername);
-	//printf("addMessage %s!", addMessage);
 	sendMessage(address,addMessage,1);
 }
 
@@ -610,33 +621,7 @@ void removeContact(char* username){
 	return;
 }
 
-connection* searchContact(char* address){
-	connection* iterator = ContactList.first;
-	if(iterator == NULL) return;
-	else if(strcmp(iterator->address,address) == 0) {
-		return iterator;
-	}
-	else {
-		while((iterator->next != NULL)) {
-			if(strcmp(iterator->next->address,address) == 0)
-				return iterator->next;
-			iterator=iterator->next;
-		}
-	}
-	return NULL;
-}
-
-void setGlobalActive(char* address){
-	globalActive = address;
-}
-
-int isEmpty(){
-	connection* iterator = ContactList.first;
-	if(iterator == NULL) return 1;
-	else	return 0;
-}
-
-void removeContactRemote(char* address){
+void removeContactRemote(char* address){ //Igual ao removeContact, exceto...
 	pthread_mutex_lock(&pingMutex);
 
 	connection* iterator = ContactList.first;
@@ -656,7 +641,7 @@ void removeContactRemote(char* address){
 			ContactList.size = ContactList.size - 1;
 		}
 
-		if(strcmp(iterator->address,globalActive)==0) removedTab=1;
+		if(strcmp(iterator->address,globalActive)==0) removedTab=1; //Se está removendo a aba atual, sinalizar
 
 		free(iterator);
 	}
@@ -679,133 +664,154 @@ void removeContactRemote(char* address){
 	return;
 }
 
-void parseReceived(char* address, char* message){
+connection* searchContact(char* address){
+	connection* iterator = ContactList.first;
+	if(iterator == NULL) return; //Se não tem começo
+	else if(strcmp(iterator->address,address) == 0) { //Se for o primeiro
+		return iterator;
+	}
+	else { //Procurar o resto da lista encadeada
+		while((iterator->next != NULL)) {
+			if(strcmp(iterator->next->address,address) == 0)
+				return iterator->next;
+			iterator=iterator->next;
+		}
+	}
 
-	if(message[0] == ':'){
-		char* Sep = strchr(message,' ');
-		if(Sep == NULL) Sep = strrchr(message,'\0');
+	return NULL; //Não achou
+}
+
+void setGlobalActive(char* address){
+	globalActive = address;
+}
+
+int isEmpty(){
+	connection* iterator = ContactList.first;
+	if(iterator == NULL) return 1;
+	else return 0;
+}
+
+
+
+void parseReceived(char* address, char* message){ //Manipulações com strings em C
+
+	if(message[0] == ':'){ //Se começar com :, mensagem de controle
+
+		char* Sep = strchr(message,' '); //Achar o primeiro espaço
+		if(Sep == NULL) Sep = strrchr(message,'\0'); //Se falhou, achar o final da string
+
 		char ParseCode[1024];
-		strncpy(ParseCode,message,(Sep - message + 1));
-		ParseCode[(Sep - message + 1)] = '\0';
-		//printf("a mensagem recebida foi parseada ParseCOde %s Message %s\n\n", ParseCode, message);
-		if(strstr(ParseCode,":a")){
-			//printf(" adicionando alguma coisa ");
+		strncpy(ParseCode,message,(Sep - message + 1)); //Copiar a parte de controle da mensagem
+		ParseCode[(Sep - message + 1)] = '\0'; //Terminar a string ParseCode
+
+		if(strstr(ParseCode,":a")){ //Adicionando Contato
+
+			char* Separator = strchr(message,' '); //Pegar tudo depois do primeiro espaço
+			logMsg("Added contact ");
+			logMsg(address);
+			addContactRemote(address,Separator+1);
+
+		}
+
+		else if(strstr(ParseCode,":k")){ //Recebendo uma confirmação de adição
+
 			char* Separator = strchr(message,' ');
 			logMsg("Added contact ");
 			logMsg(address);
-			addContactRemote(address,Separator+1);			
-			//printf("tentou adicionar %s %s", address, Separator+1);
+			addContact(address,Separator+1);
 		}
 
-		else if(strstr(ParseCode,":k")){
-			//printf(" adicionando alguma coisa ");
-			char* Separator = strchr(message,' ');
-			logMsg("Added contact ");
-			logMsg(address);
-			addContact(address,Separator+1);			
-			//printf("tentou adicionar %s %s", address, Separator+1);
-		}
+		else if(strstr(ParseCode,":r")){ //Removendo Contato
 
-		else if(strstr(ParseCode,":r")){
 			logMsg("Removed contact ");
 			logMsg(address);
-			removeContactRemote(address);
+			removeContactRemote(address); //Remover quem enviou a mensagem
+
 		}
-		else if(strstr(ParseCode,":o")){
-			//logMsg("chegou a mamae e o papai");
+		else if(strstr(ParseCode,":o")){ //Atualizar campos de Online
+
 			connection* user = searchContact(address); 
+
 			if(user==NULL)
 				addAddress(address,1);
+
 			else if(user->online==0){			
 				user->online=1;
 				user->counter=3;
 			}
+
 			else{
 				user->counter=3;
 			}
+
 		}
 	}
 
-	else {
+	else { //Se chegou mensagem de conversa, salvar no log de chat
 		saveListMsg(1,address,message);
-		//printf("address %s message %s", address,message);
 	}
 }
 
-int parseMessage(char* message){
-	//char ParseMessage[1024] = strncpy (*message,ParseMessage,sizeof(*message));
+int parseMessage(char* message){ //Dividir input de usuário
 	int returnvalue;
 
-	if(message[0] == ':'){
-		//printf("\nImprimindo message %s\n", message); sleep(3);
-		char* Separator = strchr(message,' ');
-		if(Separator == NULL) Separator = strrchr(message,'\n');
+	if(message[0] == ':'){ //Se for mensagem de comando
+
+		char* Separator = strchr(message,' '); //Pegar o primeiro espaço
+		if(Separator == NULL) Separator = strrchr(message,'\n'); //Se não tiver espaço, pegar o final do input
 		char ParseCode[1024];
 		strncpy(ParseCode,message,(Separator - message + 1));
-		ParseCode[(Separator - message + 1)] = '\0';
-		//printf("|%s|%s|%s|%d|",ParseCode,Separator,Separator+1,strlen(Separator+1));
+		ParseCode[(Separator - message + 1)] = '\0'; //ParseCode = comando do usuário
 
-		if(strstr(ParseCode,":a")){
+		if(strstr(ParseCode,":a")){ //Comando de adicionar contato
 			returnvalue = 0;
 			//Código para copiar do separador ao final da string no buffer original para uso no messengerthread
 			char* Separator2 = strrchr(message,'\n');
 			Separator2[0] = '\0';
-			if(Separator != Separator2) {
-				//printf("\nPrintando Separator+1 %s e message %d\n", (Separator+1),(Separator2-Separator-2));
+			if(Separator != Separator2) { //Se tiver algo depois do :a
 				char aux[1024];
 				strcpy(aux,Separator+1);
 				strcpy(message,aux);
-				//memmove(aux,(Separator+1),(Separator2-Separator-2));
-				//memmove(message,aux,1024);
-				//printf("|%s|%d|%s|%d", aux,strlen(message),message, strcmp(message,"123.123.123.123"));
-				//sleep(20);
-				//printf("\nMarkmark\n"); sleep(3);
 			}
-			else {logMsg("\nErro esquisito no Add\n");}
 		}
 
 
-		else if(strstr(ParseCode,":h")) returnvalue = 1;
+		else if(strstr(ParseCode,":h")) returnvalue = 1; //Caso help
 
-		else if(strstr(ParseCode,":r")){
+		else if(strstr(ParseCode,":r")){ //Comando de remover contato
 			returnvalue = 2;
-			//printf("here1"); sleep(1);
-			//__fpurge(stdout);
+
 			char* Separator2 = strrchr(message,'\n');
-			*Separator2 = '\0';
+			*Separator2 = '\0'; //Ver o final da string e terminar.
+
 			if(Separator != Separator2) {
 				char aux[1024];
 				strcpy(aux,Separator+1);
 				strcpy(message,aux);
-				returnvalue = 2;
-				//printf("%s %d",message,strcmp(message,"username")); sleep(2);
 			}
-			//char buffer[50];
-			//sprintf(buffer,"%d",returnvalue);
-			//logMsg(buffer);
 		}
 
-		else if(strstr(ParseCode,":q")) returnvalue = 3;
+		else if(strstr(ParseCode,":q")) returnvalue = 3; //Quitar do programa
 
-		else if(strstr(ParseCode,":t")){
-			returnvalue = 4;
-			//printf("here");	
-			//__fpurge(stdout);
-			char* Separator2 = strrchr(message,' ');
-			if(Separator2 != NULL) {
+		else if(strstr(ParseCode,":t")){ //Caso de tab
+			returnvalue = 4; //Tab sem username
+			char* Separator2 = strrchr(message,' '); //Procurar o último espaço do input
+			if(Separator2 != NULL) { //Se tiver espaço...
 				Separator = strrchr(message,'\n');
 				*Separator = '\0';
+
 				char aux[1024];
 				strcpy(aux,Separator2+1);
 				strcpy(message,aux);
-				returnvalue = 5;
+
+				returnvalue = 5; //Tab com username
 			}
 		}
 
-		else if(strstr(ParseCode,":g")) {
+		else if(strstr(ParseCode,":g")) { //Comando de mensagem em grupo
 			returnvalue = 6;
 			char* Separator2 = strrchr(message,'\n');
-			//*Separator2 = '\0';
+
 			if(Separator != Separator2) {
 				char aux[1024];
 				strcpy(aux,Separator+1);
@@ -813,75 +819,70 @@ int parseMessage(char* message){
 			}
 		}
 
-		else if(strstr(ParseCode,":f")) returnvalue = 7;
+		else if(strstr(ParseCode,":f")) returnvalue = 7; //Comando de refresh
 
-		else if(strstr(ParseCode,":l")) returnvalue = 8;
+		else if(strstr(ParseCode,":l")) returnvalue = 8; //Comando de listagem
 
-		//char ReturnMessage[1024] = strncpy((Separator+1),ReturnMessage,sizeof(*message) - (Separator - *message + 1));
-		//strcpy(message,strchr(message,' '));
 		else{
-			returnvalue=99;
+			returnvalue=99; //Comando nenhum
 		}
 	}
+
 	else{
-		//printf("here");
-		//char dataMessage[1024];
-		//strcpy(dataMessage,thisUsername);
-		//strcat(dataMessage," - ");
-		//strcat(dataMessage,message);
-		//strcpy(message,dataMessage);
-		returnvalue = -1;
+		returnvalue = -1; //Mensagem de chat
 	}
+
 	return returnvalue;
 }
 
-void groupMessage(char* buffer){
+void groupMessage(char* buffer){ //Função de mensagem em grupo
+
 	char* identifier = buffer;
 	int counter = 0;
 	int i;
 
-	while(identifier[0]!='\0'){
+	while(identifier[0]!='\0'){ //Busca por quantos usernames tem
 		if(identifier[0]=='@') counter++;
 		identifier++;
 	}
 
-	char userSelector[64][64];
+	char userSelector[64][64]; //Suporte a até 64 usernames com 64 chars cada
 
-	if(!counter) return;
+	if(!counter) return; //Se não teve nenhum username, sair
 
 	char* identifier2 = buffer;
 	identifier = buffer;
 	i = 0;
 	char setupFlag = 0;
-	while(identifier[0]!='\0'){
+	while(identifier[0]!='\0'){ //Enquanto não chegou ao final
 
-		if(identifier[0]=='@'){
+		if(identifier[0]=='@'){ //Achou um username, espera-o terminar
 			identifier++;
 			identifier2 = identifier;
 			setupFlag = 1;
 		}
 
-		else if(identifier[0]==' ' && setupFlag == 1){
+		else if(identifier[0]==' ' && setupFlag == 1){ //Terminou um username, espere outro começar
 			identifier[0] = '\0';
-			strcpy(userSelector[i],identifier2);
+			strcpy(userSelector[i],identifier2); //Copiar username encontrado para buffer
 			identifier2 = identifier+1;
 			while(identifier2[0]==' ') identifier2++;
 			identifier = identifier2;
-			i++;
+			i++; //Aumentar quantos usernames foram copiados
 			setupFlag = 0;
 		}
 
 		else identifier++;
 	}
-	//tam=strlen(buffer);
-	//buffer[tam]='\n';
+
 	//if(setupFlag == 1) Não teve mensagem pra enviar, dur.
 	//else identifier2 terá a mensagem para enviar.
+
 	if(!setupFlag) {
 
-		strcpy(buffer,identifier2);
+		strcpy(buffer,identifier2); //Copiar mensagem de multicast para buffer
 		pthread_mutex_lock(&pingMutex);
-		connection* iterator = ContactList.first;
+		connection* iterator = ContactList.first; //Iterar lista de contatos
 
 		if(iterator != NULL)
 			for(i = 0; i < counter; i++){
@@ -889,7 +890,7 @@ void groupMessage(char* buffer){
 					iterator = iterator->next;
 				if(iterator != NULL){ //Encontrou username na lista de contatos
 
-					if(iterator->online == 1){	
+					if(iterator->online == 1){ //Se online...
 						sendMessage(iterator->address,buffer,0);
 					}
 				
@@ -937,7 +938,7 @@ void printContactList(void){
 	getc(stdin);
 }
 
-																																																																																																																																																																																																																																																																																																																								void saveContacts(void){
+																																																																																																																																																																																																																																																																																																																								void saveContacts(void){ //Ideia antiga, de salvar contatos em um .txt externo
 	FILE* SaveFile = fopen("ContactList.txt","w");
 	connection* it = ContactList.first;
 	//char buffer[512];
@@ -966,7 +967,7 @@ void loadContacts(void){
 	if(!ftell(LoadFile)) fclose(LoadFile);
 }
 
-void logMsg(char* Content){
+void logMsg(char* Content){ //Salvar mensagem no log
 	FILE* LogFile = fopen("log.txt","a");
 	fputs(Content,LogFile);
 	fputc('\n',LogFile);
@@ -1023,7 +1024,7 @@ void printListMsg(char* address){
 	//printf(" terminei printar "); sleep(3);
 }
 
-void printest(char* address){
+void printest(char* address){ //Teste de print
 	conversation* iterator = MessageList.first;
 	if(iterator == NULL){
 		//printf("nemfoi");
@@ -1049,14 +1050,11 @@ void init(void){
 	printf(" Bem vindo ao messenger!\n# Por favor digite seu nome de usuario.\n# Username: ");
 	__fpurge(stdin);
 	fgets(thisUsername,63,stdin);
-	char* ReturnOfNewlineKiller = strrchr(thisUsername,'\n');
-	*ReturnOfNewlineKiller = '\0';
+	char* ReturnOfNewlineKiller = strrchr(thisUsername,'\n'); //NEWLINEKILLER RETURNS
+	*ReturnOfNewlineKiller = '\0'; //Esse carinha já salvou 3 trabalhos. Viva Newline Killer.
 	quit = 0;
 	justadd = 0;
 	removedTab = 0;
-	//ContactList.first = malloc(sizeof(connection));
-	//strcpy(ContactList.first->address,"localhost");
-	//strcpy(ContactList.first->username,thisUsername);
 	ContactList.first = NULL;
 	MessageList.first = NULL;
 	if(pthread_mutex_init(&receivedMutex,NULL) != 0){
