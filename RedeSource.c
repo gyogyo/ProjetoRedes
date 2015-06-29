@@ -89,7 +89,7 @@ void* pingThread(void){
 			struct sockaddr_in si_other;
 			int s, i, slen=sizeof(si_other);
 			struct hostent *host;
-			host=gethostbyname(iterator->address);
+			host=gethostbyname(iterator->address);		
 			if((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
 				logMsg("Erro de socket");		
 			}
@@ -441,6 +441,16 @@ void sendMessage(char* address, char* message, int control){
 	//printf("address %s. Number %d. name %s.", address,(int)strlen(address), message);
 
 	host = gethostbyname(address);
+	if(host == NULL){
+		logMsg("Erro no endereco");
+		printf("\33[H\33[2J");
+		printf("##################################################################\n#\n#");
+		printf(" Erro no endereco\n");	
+		printf("#\n##################################################################");
+		sleep(3);
+		pthread_mutex_unlock(&sendMutex);
+		return;
+	}
 	
 	if ((socket_id = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		logMsg("Erro no Socket");
@@ -455,7 +465,9 @@ void sendMessage(char* address, char* message, int control){
 	if (connect(socket_id,(struct sockaddr *)&server_address,sizeof(struct sockaddr)) == -1){
 		logMsg("Erro de conexao");
 		printf("\33[H\33[2J");
-		printf("Erro: %s\n", strerror(errno));
+		printf("##################################################################\n#\n#");
+		printf(" Erro: %s\n", strerror(errno));
+		printf("#\n##################################################################");
 		close(socket_id);
 		sleep(3);
 	}
